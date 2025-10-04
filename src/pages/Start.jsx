@@ -5,6 +5,7 @@ import Starfield from '../components/Starfield.jsx'
 export default function Start() {
   const navigate = useNavigate()
   const [isHyperParamsOpen, setIsHyperParamsOpen] = useState(false)
+  const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
   
   // Handle typing in inputs to update slider
   const handleInputChange = (e, min, max) => {
@@ -42,6 +43,39 @@ export default function Start() {
   const handleKeyDown = (e) => {
     if (e.key === '+' || e.key === '-') {
       e.preventDefault()
+    }
+  }
+
+  // Handle range inputs to ensure left <= right
+  const handleRangeInputChange = (e, min, max, isLeftInput) => {
+    const input = e.target
+    let value = parseFloat(input.value)
+    
+    // Clamp to min/max first
+    if (!isNaN(value)) {
+      value = Math.max(min, Math.min(max, value))
+      input.value = value
+    }
+    
+    // Find the paired input (sibling)
+    const rangeContainer = input.closest('.range-inputs')
+    const inputs = rangeContainer.querySelectorAll('input[type="number"]')
+    const leftInput = inputs[0]
+    const rightInput = inputs[1]
+    
+    const leftValue = parseFloat(leftInput.value) || min
+    const rightValue = parseFloat(rightInput.value) || max
+    
+    if (isLeftInput) {
+      // If left input changed and it's now greater than right, update right
+      if (leftValue > rightValue) {
+        rightInput.value = leftValue
+      }
+    } else {
+      // If right input changed and it's now less than left, update left
+      if (rightValue < leftValue) {
+        leftInput.value = rightValue
+      }
     }
   }
 
@@ -117,6 +151,31 @@ export default function Start() {
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'ew-resize'
     e.preventDefault()
+  }
+
+  // Validation functions for star search filters
+  const validateRA = (value) => {
+    const ra = parseFloat(value)
+    if (isNaN(ra) || ra < 0 || ra >= 360) {
+      return "Right Ascension must be between 0° and 360°"
+    }
+    return null
+  }
+
+  const validateDec = (value) => {
+    const dec = parseFloat(value)
+    if (isNaN(dec) || dec < -90 || dec > 90) {
+      return "Declination must be between -90° and +90°"
+    }
+    return null
+  }
+
+  const validateRadius = (value) => {
+    const radius = parseFloat(value)
+    if (isNaN(radius) || radius <= 0 || radius > 30) {
+      return "Radius must be between 0.01 and 30 arcmin"
+    }
+    return null
   }
 
   return (
@@ -338,25 +397,130 @@ export default function Start() {
      </div>
      
       <div className="glass card w-30 h-90">
-        <p className="card-text">Filter by satelite</p>
-        <select className="dropdown">
-          <option value="">Select a satelite</option>
-        </select>
-        <p className="card-text">Choose which star you want to analize</p>
-        <input 
-          type="text" 
-          className="star-input" 
-          placeholder="Enter star ID"
-        />
-        <p className="card-text">Or upload your own data</p>
-        <div className="file-upload-box">
-          <input type="file" id="fileInput" className="file-input" accept=".csv,.json" />
-          <label htmlFor="fileInput" className="file-upload-label">
-            <div className="upload-icon"></div>
-            <div className="upload-text">Drop data files here CSV, JSON</div>
-          </label>
+        {/* Scrollable Content Area */}
+        <div className="scrollable-content">
+          {/* Star Search Filters */}
+          <div className="star-filters-section">
+            <div className="filter-section-header" onClick={() => setIsStarFiltersOpen(!isStarFiltersOpen)}>
+              <span>Star Search Filters</span>
+              <span className={`expand-icon ${isStarFiltersOpen ? 'expanded' : 'collapsed'}`}>▼</span>
+            </div>
+            
+            {isStarFiltersOpen && (
+              <div className="filter-content">
+                {/* Sky Position */}
+                <div className="filter-group">
+                  <label className="filter-label">Sky position:</label>
+                  <div className="sky-position-inputs">
+                    <div className="input-group">
+                      <label className="input-label">RA</label>
+                      <input type="number" className="filter-input" placeholder="0-360" min="0" max="360"
+                             onChange={(e) => handleInputChange(e, 0, 360)} />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Dec</label>
+                      <input type="number" className="filter-input" placeholder="-90 to 90" min="-90" max="90"
+                             onChange={(e) => handleInputChange(e, -90, 90)} />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Radius</label>
+                      <input type="number" className="filter-input" placeholder="arcmin" min="0.01" max="30"
+                             onChange={(e) => handleInputChange(e, 0.01, 30)} />
+                      <span className="unit-label">arcmin</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Magnitude Range */}
+                <div className="filter-group">
+                  <label className="filter-label">Magnitude range:</label>
+                  <div className="range-inputs">
+                    <input type="number" className="filter-input range-input" defaultValue="6" min="0" max="20"
+                           onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
+                    <span className="range-separator">—</span>
+                    <input type="number" className="filter-input range-input" defaultValue="15" min="0" max="20"
+                           onChange={(e) => handleRangeInputChange(e, 0, 20, false)} />
+                  </div>
+                </div>
+
+                {/* Temperature */}
+                <div className="filter-group">
+                  <label className="filter-label">Temperature (K):</label>
+                  <div className="range-inputs">
+                    <input type="number" className="filter-input range-input" defaultValue="3000" min="2500" max="40000"
+                           onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
+                    <span className="range-separator">—</span>
+                    <input type="number" className="filter-input range-input" defaultValue="7500" min="2500" max="40000"
+                           onChange={(e) => handleRangeInputChange(e, 2500, 40000, false)} />
+                  </div>
+                </div>
+
+                {/* Distance */}
+                <div className="filter-group">
+                  <label className="filter-label">Distance (pc):</label>
+                  <div className="range-inputs">
+                    <input type="number" className="filter-input range-input" defaultValue="10" min="1" max="10000"
+                           onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
+                    <span className="range-separator">—</span>
+                    <input type="number" className="filter-input range-input" defaultValue="500" min="1" max="10000"
+                           onChange={(e) => handleRangeInputChange(e, 1, 10000, false)} />
+                  </div>
+                </div>
+
+                {/* Observation */}
+                <div className="filter-group">
+                  <label className="filter-label">Observation:</label>
+                  <select className="filter-dropdown">
+                    <option value="">Select satellite</option>
+                    <option value="tess">TESS</option>
+                    <option value="k2">K2</option>
+                  </select>
+                </div>
+
+                {/* Flags */}
+                <div className="filter-group">
+                  <label className="filter-label">Flags:</label>
+                  <div className="checkbox-group">
+                    <label className="checkbox-label">
+                      <input type="checkbox" className="filter-checkbox" />
+                      <span className="checkmark"></span>
+                      Variable stars only
+                    </label>
+                    <label className="checkbox-label">
+                      <input type="checkbox" className="filter-checkbox" />
+                      <span className="checkmark"></span>
+                      Has TOI/KOI
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Star ID Section */}
+          <div className="star-id-section">
+            <p className="card-text">Choose which star you want to analyze</p>
+            <input 
+              type="text" 
+              className="star-input" 
+              placeholder="Enter star ID"
+            />
+          </div>
+
+          {/* File Upload */}
+          <div className="upload-section">
+            <p className="card-text">Or upload your own data</p>
+            <div className="file-upload-box">
+              <input type="file" id="fileInput" className="file-input" accept=".csv,.json" />
+              <label htmlFor="fileInput" className="file-upload-label">
+                <div className="upload-icon"></div>
+                <div className="upload-text">Drop data files here CSV, JSON</div>
+              </label>
+            </div>
+          </div>
         </div>
 
+        {/* Fixed Button Outside Scroll */}
         <button className="start-analyzing-btn">Start Analyzing</button>
 
       </div>
