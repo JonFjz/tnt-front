@@ -1,0 +1,68 @@
+newmtl energy_Mat
+Ni 1.6
+Ka 0 0 0
+d 1.0
+Ke 0.0
+Kd 0 0 0
+adobe_map_normal kepler_satellite/energy_normal.png
+Tr 0
+illum 7
+Ks 1 1 1
+adobe_translucence 0.0
+adobe_map_roughness kepler_satellite/energy_roughness.png
+adobe_interior_color 1.0 1.0 1.0
+adobe_density 0.0
+map_Pm kepler_satellite/energy_metallic.png
+Ns 16
+map_Kd kepler_satellite/energy_baseColor.png
+newmtl goldleaf_Mat
+Ni 1.6
+Ka 0 0 0
+d 1.0
+Ke 0.0
+Kd 0 0 0
+adobe_map_normal kepler_satellite/goldleaf_normal.png
+Tr 0
+illum 7
+Ks 1 1 1
+adobe_translucence 0.0
+adobe_map_roughness kepler_satellite/goldleaf_roughness.png
+adobe_interior_color 1.0 1.0 1.0
+adobe_density 0.0
+map_Pm kepler_satellite/goldleaf_metallic.png
+Ns 16
+map_Kd kepler_satellite/goldleaf_baseColor.png
+newmtl mineral_Mat
+Ni 1.6
+Ka 0 0 0
+d 1.0
+Ke 0.0
+Kd 0 0 0
+adobe_map_normal kepler_satellite/mineral_normal.png
+Tr 0
+illum 7
+Ks 1 1 1
+adobe_translucence 0.0
+adobe_map_roughness kepler_satellite/mineral_roughness.png
+adobe_interior_color 1.0 1.0 1.0
+adobe_density 0.0
+map_Pm kepler_satellite/mineral_metallic.png
+Ns 16
+map_Kd kepler_satellite/mineral_baseColor.png
+newmtl steel_Mat
+Ni 1.6
+Ka 0 0 0
+d 1.0
+Ke 0.0
+Kd 0 0 0
+adobe_map_normal kepler_satellite/steel_normal.png
+Tr 0
+illum 7
+Ks 1 1 1
+adobe_translucence 0.0
+adobe_map_roughness kepler_satellite/steel_roughness.png
+adobe_interior_color 1.0 1.0 1.0
+adobe_density 0.0
+map_Pm kepler_satellite/steel_metallic.png
+Ns 16
+map_Kd kepler_satellite/steel_baseColor.png
