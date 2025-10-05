@@ -8,6 +8,8 @@ export default function Start() {
   const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('starSearch') // 'starSearch' or 'starFilter'
   const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
+  const [hasResults, setHasResults] = useState(false) // Results state from backend
+  const [resultsData, setResultsData] = useState(null) // Store actual results data
   
   // Handle typing in inputs to update slider
   const handleInputChange = (e, min, max) => {
@@ -214,14 +216,16 @@ export default function Start() {
     <main className="page">
      <Starfield />
      
-     {/* Hyper Parameters Button */}
-     <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)}>
-       Change Hyper Parameters
-       <div className="settings-icon"></div>
-     </button>
+     {/* Hyper Parameters Button - Hide when results exist */}
+     {!hasResults && (
+       <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)}>
+         Change Hyper Parameters
+         <div className="settings-icon"></div>
+       </button>
+     )}
 
-     {/* Hyper Parameters Panel */}
-     {isHyperParamsOpen && (
+     {/* Hyper Parameters Panel - Hide when results exist */}
+     {!hasResults && isHyperParamsOpen && (
        <div className="hyper-params-panel">
          <div className="param-section">
            <div className="param-section-header" onClick={() => toggleSection('presets')}>
@@ -429,24 +433,127 @@ export default function Start() {
      </div>
      
       <div className="glass card w-30 h-90">
-        {/* Tab Navigation */}
-        <div className="tab-navigation">
-          <button 
-            className={`tab-button ${activeTab === 'starSearch' ? 'active' : ''}`}
-            onClick={() => setActiveTab('starSearch')}
-          >
-            Star Search
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'starFilter' ? 'active' : ''}`}
-            onClick={() => setActiveTab('starFilter')}
-          >
-            Star Filter
-          </button>
-        </div>
+        {/* Show results or filters based on state */}
+        {hasResults ? (
+          /* Results Content */
+          <div className="results-container">
+            <div className="results-header">
+              <h3>Star Analysis Results</h3>
+              <button 
+                className="back-to-search-btn"
+                onClick={() => setHasResults(false)}
+              >
+                ← Back to Search
+              </button>
+            </div>
+            <div className="scrollable-content">
+              <div className="results-content">
+                {resultsData ? (
+                  <>
+                    {/* Star Information Section */}
+                    <div className="results-section">
+                      <h4 className="section-title">Star Information</h4>
+                      <div className="info-grid">
+                        <div className="info-item">
+                          <label className="info-label">Star ID:</label>
+                          <span className="info-value">{resultsData.starId || 'TIC 123456789'}</span>
+                        </div>
+                        <div className="info-item">
+                          <label className="info-label">RA:</label>
+                          <span className="info-value">{resultsData.ra || '180.5°'}</span>
+                        </div>
+                        <div className="info-item">
+                          <label className="info-label">Dec:</label>
+                          <span className="info-value">{resultsData.dec || '-45.2°'}</span>
+                        </div>
+                        <div className="info-item">
+                          <label className="info-label">Magnitude:</label>
+                          <span className="info-value">{resultsData.magnitude || '12.4'}</span>
+                        </div>
+                        <div className="info-item">
+                          <label className="info-label">Temperature:</label>
+                          <span className="info-value">{resultsData.temperature || '5800 K'}</span>
+                        </div>
+                        <div className="info-item">
+                          <label className="info-label">Distance:</label>
+                          <span className="info-value">{resultsData.distance || '125.6 pc'}</span>
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Scrollable Content Area */}
-        <div className="scrollable-content">
+                    {/* Graph Section */}
+                    <div className="results-section">
+                      <h4 className="section-title">Light Curve Analysis</h4>
+                      <div className="graph-container">
+                        <div className="graph-placeholder">
+                          <div className="graph-content">
+                            <p>📈 Light curve graph will be displayed here</p>
+                            <div className="graph-mock">
+                              <div className="graph-axes">
+                                <span className="y-axis-label">Brightness</span>
+                                <span className="x-axis-label">Time (days)</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Analyzing star data...</p>
+                    <p className="loading-subtext">This may take a few moments</p>
+                    
+                    {/* Mock Data Button for Testing */}
+                    <button 
+                      className="mock-data-btn"
+                      onClick={() => setResultsData({
+                        starId: "TIC 441420236",
+                        ra: "285.67°",
+                        dec: "-23.45°", 
+                        magnitude: "11.2",
+                        temperature: "5847 K",
+                        distance: "98.3 pc",
+                        exoplanetCount: 2,
+                        confidence: 89,
+                        threshold: 0.74,
+                        snr: 12.8,
+                        processingTime: "1.7s",
+                        transits: [
+                          { period: "4.15 days", depth: "0.92%", duration: "2.3 hours" },
+                          { period: "8.47 days", depth: "0.61%", duration: "1.9 hours" }
+                        ]
+                      })}
+                    >
+                      Load Mock Results (Preview)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Search/Filter Content */
+          <>
+            {/* Tab Navigation */}
+            <div className="tab-navigation">
+              <button 
+                className={`tab-button ${activeTab === 'starSearch' ? 'active' : ''}`}
+                onClick={() => setActiveTab('starSearch')}
+              >
+                Star Search
+              </button>
+              <button 
+                className={`tab-button ${activeTab === 'starFilter' ? 'active' : ''}`}
+                onClick={() => setActiveTab('starFilter')}
+              >
+                Star Filter
+              </button>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="scrollable-content">
           {/* Star Search Tab */}
           {activeTab === 'starSearch' && (
             <div className="tab-content">
@@ -631,12 +738,96 @@ export default function Start() {
               </div>
             </div>
           )}
-        </div>
+            </div>
+          </>
+        )}
 
-        {/* Fixed Button Outside Scroll */}
-        <button className="start-analyzing-btn">Start Analyzing</button>
+        {/* Fixed Button Outside Scroll - Hide when results exist */}
+        {!hasResults && (
+          <button className="start-analyzing-btn">Start Analyzing</button>
+        )}
+
+        {/* Test Button for Results Toggle (bottom right) */}
+        <button 
+          className="test-results-btn"
+          onClick={() => setHasResults(!hasResults)}
+        >
+          {hasResults ? 'Hide Results' : 'Show Results'}
+        </button>
 
       </div>
+
+      {/* AI Analysis - Center Container */}
+      {hasResults && resultsData && (
+        <div className="ai-analysis-container">
+          <h4 className="section-title">AI Analysis</h4>
+          <div className="ai-analysis">
+            <div className="ai-main-result">
+              <div className="exoplanet-count">
+                <span className="count-number">{resultsData.exoplanetCount || '2'}</span>
+                <span className="count-label">Exoplanets Detected</span>
+              </div>
+              <div className="confidence-meter">
+                <label className="confidence-label">Confidence:</label>
+                <div className="confidence-bar">
+                  <div 
+                    className="confidence-fill" 
+                    style={{width: `${resultsData.confidence || 87}%`}}
+                  ></div>
+                </div>
+                <span className="confidence-value">{resultsData.confidence || 87}%</span>
+              </div>
+            </div>
+            
+            <div className="ai-details">
+              <div className="ai-detail-item">
+                <label className="ai-label">Detection Threshold:</label>
+                <span className="ai-value">{resultsData.threshold || '0.72'}</span>
+              </div>
+              <div className="ai-detail-item">
+                <label className="ai-label">Signal-to-Noise Ratio:</label>
+                <span className="ai-value">{resultsData.snr || '8.4'}</span>
+              </div>
+              <div className="ai-detail-item">
+                <label className="ai-label">Processing Time:</label>
+                <span className="ai-value">{resultsData.processingTime || '2.3s'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transit Details - Right of AI Analysis */}
+      {hasResults && resultsData && (
+        <div className="transit-details-container">
+          <h4 className="section-title">Transit Details</h4>
+          <div className="transit-details-scrollable">
+            <div className="transit-details">
+              {resultsData.transits && resultsData.transits.length > 0 ? (
+                resultsData.transits.map((transit, index) => (
+                  <div key={index} className="transit-item">
+                    <h5>Planet {index + 1}</h5>
+                    <div className="transit-info">
+                      <span>Period: {transit.period || '3.2 days'}</span>
+                      <span>Depth: {transit.depth || '0.8%'}</span>
+                      <span>Duration: {transit.duration || '2.1 hours'}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="transit-item">
+                  <h5>Planet 1</h5>
+                  <div className="transit-info">
+                    <span>Period: 3.2 days</span>
+                    <span>Depth: 0.8%</span>
+                    <span>Duration: 2.1 hours</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
