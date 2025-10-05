@@ -8,6 +8,15 @@ export default function Start() {
   const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('basicStars') // 'basicStars', 'starSearch', or 'starFilter'
   const [selectedStar, setSelectedStar] = useState(null) // Track selected star from basic stars list
+  const [filteredStars, setFilteredStars] = useState([
+    { id: 'HD 209458', name: 'HD 209458', type: 'G0V', magnitude: 7.65, distance: 159 },
+    { id: 'WASP-12', name: 'WASP-12', type: 'G0V', magnitude: 11.69, distance: 871 },
+    { id: 'Kepler-452', name: 'Kepler-452', type: 'G2V', magnitude: 13.4, distance: 1402 },
+    { id: 'TRAPPI222ST-1', name: 'TRAPPIST-1', type: 'M8V', magnitude: 18.8, distance: 39.5 },
+    { id: 'TOI-715', name: 'TOI-715', type: 'M4V', magnitude: 16.2, distance: 137 },
+    { id: 'K2-18', name: 'K2-18', type: 'M2.5V', magnitude: 13.4, distance: 124 }
+  ]) // Store filtered stars from star filter
+  const [selectedFilteredStar, setSelectedFilteredStar] = useState(null) // Track selected star from filtered list
   const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
   const [hasResults, setHasResults] = useState(false) // Results state from backend
   const [resultsData, setResultsData] = useState(null) // Store actual results data
@@ -766,21 +775,40 @@ export default function Start() {
                       </select>
                     </div>
 
-                    {/* Flags */}
+                    {/* Filter Button */}
                     <div className="filter-group">
-                      <label className="filter-label">Flags:</label>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
-                          <input type="checkbox" className="filter-checkbox" />
-                          <span className="checkmark"></span>
-                          Variable stars only
-                        </label>
-                        <label className="checkbox-label">
-                          <input type="checkbox" className="filter-checkbox" />
-                          <span className="checkmark"></span>
-                          Has TOI/KOI
-                        </label>
-                      </div>
+                      <button className="filter-btn" onClick={() => setFilteredStars([])}>
+                        Filter
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Select Star Section */}
+                  <div className="select-star-section">
+                    <h4 className="section-subtitle">Select Star</h4>
+                    <div className="filtered-stars-list">
+                      {filteredStars.length > 0 ? (
+                        filteredStars.map((star) => (
+                          <div 
+                            key={star.id}
+                            className={`star-item ${selectedFilteredStar?.id === star.id ? 'selected' : ''}`}
+                            onClick={() => setSelectedFilteredStar(star)}
+                          >
+                            <div className="star-info">
+                              <div className="star-name">{star.name}</div>
+                              <div className="star-id">{star.id}</div>
+                              <div className="star-details">
+                                <span className="star-type">{star.type}</span>
+                                <span className="star-magnitude">Mag: {star.magnitude}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="no-filtered-stars">
+                          <p>No stars found. Apply filters and click "Filter" to see results.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
               </div>

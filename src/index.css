@@ -737,6 +737,80 @@ body{
   display: block;
 }
 
+/* Filter Button */
+.filter-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #4a9eff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.filter-btn:hover {
+  background-color: #357abd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+/* Select Star Section */
+.select-star-section {
+  margin-top: 24px;
+  padding-top: 20px;
+}
+
+.section-subtitle {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filtered-stars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 6px; /* Space for scrollbar */
+}
+
+/* Custom scrollbar for filtered stars list */
+.filtered-stars-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.filtered-stars-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filtered-stars-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.filtered-stars-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.no-filtered-stars {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.no-filtered-stars p {
+  margin: 0;
+  font-style: italic;
+}
+
 /* Fixed Button */
 .start-analyzing-btn {
   position: sticky;
