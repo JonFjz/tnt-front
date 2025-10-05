@@ -567,18 +567,14 @@ export default function Start() {
               <div className="basic-stars-section">
                 <div className="stars-list">
                   {[
-                    { id: 'TIC-123456789', name: 'Proxima Centauri', type: 'Red Dwarf', magnitude: '11.13' },
-                    { id: 'TIC-987654321', name: 'Alpha Centauri A', type: 'G-type', magnitude: '-0.27' },
-                    { id: 'TIC-555444333', name: 'Betelgeuse', type: 'Red Supergiant', magnitude: '0.58' },
-                    { id: 'TIC-111222333', name: 'Sirius A', type: 'A-type', magnitude: '-1.46' },
-                    { id: 'TIC-777888999', name: 'Vega', type: 'A-type', magnitude: '0.03' },
-                    { id: 'TIC-444555666', name: 'Arcturus', type: 'Red Giant', magnitude: '-0.05' },
-                    { id: 'TIC-666777888', name: 'Capella A', type: 'G-type', magnitude: '0.08' },
-                    { id: 'TIC-222333444', name: 'Rigel', type: 'Blue Supergiant', magnitude: '0.13' },
-                    { id: 'TIC-888999000', name: 'Procyon A', type: 'F-type', magnitude: '0.34' },
-                    { id: 'TIC-333444555', name: 'Aldebaran', type: 'Red Giant', magnitude: '0.85' },
-                    { id: 'TIC-999000111', name: 'Spica', type: 'Blue Giant', magnitude: '1.04' },
-                    { id: 'TIC-555666777', name: 'Pollux', type: 'K-type Giant', magnitude: '1.14' }
+                    { id: 'TIC-388857263', name: 'Proxima Centauri', type: 'Red Dwarf', magnitude: '11.13' },
+                    { id: 'TIC-261136679', name: 'π Mensae', type: 'G-type', magnitude: '5.65' },
+                    { id: 'TIC-150428135', name: 'TOI-700', type: 'Red Dwarf', magnitude: '13.1' },
+                    { id: 'TIC-269273552', name: 'Betelgeuse', type: 'Red Supergiant', magnitude: '0.58' },
+                    { id: 'TIC-231308237', name: 'Rigel', type: 'Blue Supergiant', magnitude: '0.13' },
+                    { id: 'TIC-280310048', name: 'Procyon A', type: 'F-type', magnitude: '0.34' },
+                    { id: 'TIC-245873777', name: 'Aldebaran', type: 'Red Giant', magnitude: '0.85' },
+                    { id: 'TIC-423088367', name: 'Pollux', type: 'K-type Giant', magnitude: '1.14' }
                   ].map((star) => (
                     <div 
                       key={star.id}
