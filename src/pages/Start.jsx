@@ -10,14 +10,7 @@ export default function Start() {
   const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('basicStars') // 'basicStars', 'starSearch', or 'starFilter'
   const [selectedStar, setSelectedStar] = useState(null) // Track selected star from basic stars list
-  const [filteredStars, setFilteredStars] = useState([
-    { id: 'HD 209458', name: 'HD 209458', type: 'G0V', magnitude: 7.65, distance: 159 },
-    { id: 'WASP-12', name: 'WASP-12', type: 'G0V', magnitude: 11.69, distance: 871 },
-    { id: 'Kepler-452', name: 'Kepler-452', type: 'G2V', magnitude: 13.4, distance: 1402 },
-    { id: 'TRAPPI222ST-1', name: 'TRAPPIST-1', type: 'M8V', magnitude: 18.8, distance: 39.5 },
-    { id: 'TOI-715', name: 'TOI-715', type: 'M4V', magnitude: 16.2, distance: 137 },
-    { id: 'K2-18', name: 'K2-18', type: 'M2.5V', magnitude: 13.4, distance: 124 }
-  ]) // Store filtered stars from star filter
+  const [filteredStars, setFilteredStars] = useState([]) // Empty initial state - populated by API
   const [selectedFilteredStar, setSelectedFilteredStar] = useState(null) // Track selected star from filtered list
   const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
   const [hasResults, setHasResults] = useState(false) // legacy side-panel results
@@ -27,6 +20,19 @@ export default function Start() {
   const [warpDone, setWarpDone] = useState(false)
   const [dataReady, setDataReady] = useState(false)
   const [showSystem, setShowSystem] = useState(false)
+  const [isFilterLoading, setIsFilterLoading] = useState(false) // Loading state for filter API call
+  const [filterError, setFilterError] = useState(null) // Error state for filter API call
+  
+  // Refs for filter inputs
+  const raInputRef = useRef(null)
+  const decInputRef = useRef(null)
+  const radiusInputRef = useRef(null)
+  const magMinInputRef = useRef(null)
+  const magMaxInputRef = useRef(null)
+  const tempMinInputRef = useRef(null)
+  const tempMaxInputRef = useRef(null)
+  const distMinInputRef = useRef(null)
+  const distMaxInputRef = useRef(null)
 
   useEffect(() => {
     if (dataReady && (warpDone || !warpActive)) {
@@ -75,11 +81,7 @@ export default function Start() {
       }
     }
 
-    const s = Array.isArray(detailed) ? detailed[0] : (detailed || skySelectedStar || {
-      GAIA: 'MOCK-12345', ra: 180.0, dec: 0.0, Tmag: 10.5, Teff: 5600, d: 120,
-      pl_pnum: 2, pl_orbper: 4.1, pl_trandep: 1200, pl_trandurh: 1.8,
-      transits: [ { period: '4.1 days' }, { period: '9.6 days' } ]
-    })
+    const s = Array.isArray(detailed) ? detailed[0] : (detailed || skySelectedStar)
     const mapped = {
       starId: s?.GAIA || s?.ID || s?.tid || s?.ALLWISE || s?.TWOMASS || s?.UCAC || s?.TYC || 'Unknown',
       ra: (s?.ra ?? s?.RA_orig) != null ? String(s.ra ?? s.RA_orig) + '°' : '—',
@@ -203,8 +205,7 @@ export default function Start() {
 
   // Handle toggle switch
   const [toggleStates, setToggleStates] = useState({
-    findOptimalThreshold: true,
-    doOversample: true
+    qualityMask: true
   })
 
   const handleToggle = (toggleName) => {
@@ -301,14 +302,91 @@ export default function Start() {
     return null
   }
 
+  // Handle filter button click - call backend /search endpoint
+  const handleFilterStars = async () => {
+    setIsFilterLoading(true)
+    setFilterError(null)
+    
+    try {
+      // Get values from inputs
+      const ra = parseFloat(raInputRef.current?.value || 0)
+      const dec = parseFloat(decInputRef.current?.value || 0)
+      const radius = parseFloat(radiusInputRef.current?.value || 15)
+      const magMin = parseFloat(magMinInputRef.current?.value || 6)
+      const magMax = parseFloat(magMaxInputRef.current?.value || 15)
+      const tempMin = parseFloat(tempMinInputRef.current?.value || 3000)
+      const tempMax = parseFloat(tempMaxInputRef.current?.value || 7500)
+      const distMin = parseFloat(distMinInputRef.current?.value || 10)
+      const distMax = parseFloat(distMaxInputRef.current?.value || 500)
+      
+      // Validate inputs
+      const raError = validateRA(ra)
+      const decError = validateDec(dec)
+      const radiusError = validateRadius(radius)
+      
+      if (raError || decError || radiusError) {
+        setFilterError(raError || decError || radiusError)
+        setIsFilterLoading(false)
+        return
+      }
+      
+      // Build API URL
+      const base = apiUrl.replace(/\/$/, '')
+      const searchUrl = `${base}/search?ra=${ra}&dec=${dec}&radius=${radius}&mag_min=${magMin}&mag_max=${magMax}&temp_min=${tempMin}&temp_max=${tempMax}&dist_min=${distMin}&dist_max=${distMax}`
+      
+      console.log('Fetching from:', searchUrl)
+      
+      // Make API call
+      const response = await fetch(searchUrl, {
+        headers: { 'accept': 'application/json' }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('Search response:', data)
+      
+      // Check if the search was successful
+      if (data.status === 'success' && Array.isArray(data.data)) {
+        // Map the API response to the format expected by the UI
+        const mappedStars = data.data.map(star => ({
+          id: star.ID || star.objID || star.tid || star.GAIA || 'Unknown',
+          name: star.ID || star.objID || `Star ${star.tid || star.GAIA}`,
+          type: star.typeSrc || star.lumclass || 'Unknown',
+          magnitude: star.Tmag || star.GAIAmag || star.Vmag || 'N/A',
+          distance: star.d || star.st_dist || 'N/A',
+          // Store full star data for later use
+          ...star
+        }))
+        
+        setFilteredStars(mappedStars)
+        
+        // Show message if no results
+        if (mappedStars.length === 0) {
+          setFilterError('No stars found matching the criteria. Try adjusting your filters.')
+        }
+      } else {
+        setFilterError(data.message || 'Failed to fetch stars')
+        setFilteredStars([])
+      }
+    } catch (error) {
+      console.error('Error filtering stars:', error)
+      setFilterError(`Error: ${error.message}`)
+      setFilteredStars([])
+    } finally {
+      setIsFilterLoading(false)
+    }
+  }
+
   return (
     <main className="page">
-          {showSystem && resultsData && (
-       <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); setWarpDone(false); setDataReady(false); }} />
-     )}
      <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} selectedStar={skySelectedStar} />
      <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
- 
+     {showSystem && resultsData && (
+       <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); setWarpDone(false); setDataReady(false); }} />
+     )}
      
      {/* Hyper Parameters Button - Hide when results exist */}
      {!hasResults && (
@@ -321,89 +399,198 @@ export default function Start() {
      {/* Hyper Parameters Panel - Hide when results exist */}
      {!hasResults && isHyperParamsOpen && (
        <div className="hyper-params-panel">
-         <div className="param-item">
-           <label>learning_rate</label>
-           <div className="param-input-wrapper">
-             <input type="number" step="0.01" defaultValue="0.1" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('presets')}>
+             <span>Presets</span>
+             <span className={`expand-icon ${sectionStates.presets ? 'expanded' : 'collapsed'}`}>▼</span>
            </div>
+           {sectionStates.presets && (
+             <div className="param-content">
+               {/* Content for presets will go here when needed */}
+             </div>
+           )}
+         </div>
+         
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('preprocessing')}>
+             <span>Preprocessing</span>
+             <span className={`expand-icon ${sectionStates.preprocessing ? 'expanded' : 'collapsed'}`}>▼</span>
+           </div>
+           {sectionStates.preprocessing && (
+             <div className="param-content">
+               <div className="param-item">
+                 <label>Sigma-clip</label>
+                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="6">
+                   <input type="number" min="1" max="10" defaultValue="6" className="param-input" 
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return; // Double click to select
+                            handleMouseDown(e, 1, 10);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 1, 10)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>Resampling cadence</label>
+                 <div className="param-input-wrapper" data-min="10" data-max="100" data-value="60">
+                   <input type="number" min="10" max="100" defaultValue="60" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 10, 100);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 10, 100)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>Quality mask</label>
+                 <div 
+                   className={`param-toggle ${toggleStates.qualityMask ? 'on' : 'off'}`}
+                   onClick={() => handleToggle('qualityMask')}
+                 >
+                   {toggleStates.qualityMask ? 'ON' : 'OFF'}
+                 </div>
+               </div>
+             </div>
+           )}
          </div>
 
-         <div className="param-item">
-           <label>num_leaves</label>
-           <div className="param-input-wrapper">
-             <input type="number" defaultValue="31" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('transitSearch')}>
+             <span>Transit search</span>
+             <span className={`expand-icon ${sectionStates.transitSearch ? 'expanded' : 'collapsed'}`}>▼</span>
            </div>
+           {sectionStates.transitSearch && (
+             <div className="param-content">
+               <div className="param-item">
+                 <label>Period range(days)</label>
+                 <div className="param-input-wrapper" data-min="1" data-max="1000" data-value="365">
+                   <input type="number" min="1" max="1000" defaultValue="365" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 1, 1000);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 1, 1000)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>Max planets</label>
+                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="4">
+                   <input type="number" min="1" max="10" defaultValue="4" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 1, 10);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 1, 10)} />
+                 </div>
+               </div>
+             </div>
+           )}
          </div>
 
-         <div className="param-item">
-           <label>max_depth</label>
-           <div className="param-input-wrapper">
-             <input type="number" defaultValue="6" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('featureExtraction')}>
+             <span>Feature extraction</span>
+             <span className={`expand-icon ${sectionStates.featureExtraction ? 'expanded' : 'collapsed'}`}>▼</span>
            </div>
+           {sectionStates.featureExtraction && (
+             <div className="param-content">
+               {/* Content for feature extraction will go here when needed */}
+             </div>
+           )}
          </div>
 
-         <div className="param-item">
-           <label>scale_pos_weight</label>
-           <div className="param-input-wrapper">
-             <input type="number" step="0.1" defaultValue="3.0" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('model')}>
+             <span>Model</span>
+             <span className={`expand-icon ${sectionStates.model ? 'expanded' : 'collapsed'}`}>▼</span>
            </div>
+           {sectionStates.model && (
+             <div className="param-content">
+               <div className="param-item">
+                 <label>n_estimators</label>
+                 <div className="param-input-wrapper" data-min="100" data-max="1000" data-value="800">
+                   <input type="number" min="100" max="1000" defaultValue="800" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 100, 1000);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 100, 1000)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>learning_rate</label>
+                 <div className="param-input-wrapper" data-min="0.01" data-max="1" data-value="0.07">
+                   <input type="number" min="0.01" max="1" step="0.01" defaultValue="0.07" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 0.01, 1, 0.01);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 0.01, 1)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>max_depth</label>
+                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="4">
+                   <input type="number" min="1" max="10" defaultValue="4" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 1, 10);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 1, 10)} />
+                 </div>
+               </div>
+             </div>
+           )}
          </div>
 
-         <div className="param-item">
-           <label>false_positive_weight</label>
-           <div className="param-input-wrapper">
-             <input type="number" step="0.1" defaultValue="1.8" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
+         <div className="param-section">
+           <div className="param-section-header" onClick={() => toggleSection('decisionThreshold')}>
+             <span>Decision threshold</span>
+             <span className={`expand-icon ${sectionStates.decisionThreshold ? 'expanded' : 'collapsed'}`}>▼</span>
            </div>
-         </div>
-
-         <div className="param-item">
-           <label>optimization_type</label>
-           <div className="param-input-wrapper">
-             <select className="param-select" defaultValue="precision">
-               <option value="precision">precision</option>
-               <option value="recall">recall</option>
-               <option value="balanced">balanced</option>
-             </select>
-           </div>
-         </div>
-
-         <div className="param-item">
-           <label>test_size</label>
-           <div className="param-input-wrapper">
-             <input type="number" step="0.05" defaultValue="0.3" className="param-input"
-                    onClick={handleInputClick}
-                    onKeyDown={handleKeyDown} />
-           </div>
-         </div>
-
-         <div className="param-item">
-           <label>find_optimal_threshold</label>
-           <div 
-             className={`param-toggle ${toggleStates.findOptimalThreshold ? 'on' : 'off'}`}
-             onClick={() => handleToggle('findOptimalThreshold')}
-           >
-             {toggleStates.findOptimalThreshold ? 'ON' : 'OFF'}
-           </div>
-         </div>
-
-         <div className="param-item">
-           <label>do_oversample</label>
-           <div 
-             className={`param-toggle ${toggleStates.doOversample ? 'on' : 'off'}`}
-             onClick={() => handleToggle('doOversample')}
-           >
-             {toggleStates.doOversample ? 'ON' : 'OFF'}
-           </div>
+           {sectionStates.decisionThreshold && (
+             <div className="param-content">
+               <div className="param-item">
+                 <label>Recall Focus</label>
+                 <div className="param-input-wrapper" data-min="0" data-max="1" data-value="0.3">
+                   <input type="number" min="0" max="1" step="0.1" defaultValue="0.3" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 0, 1, 0.1);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 0, 1)} />
+                 </div>
+               </div>
+               <div className="param-item">
+                 <label>Precision Focus</label>
+                 <div className="param-input-wrapper" data-min="0" data-max="1" data-value="0.7">
+                   <input type="number" min="0" max="1" step="0.1" defaultValue="0.7" className="param-input"
+                          onMouseDown={(e) => {
+                            if (e.detail === 2) return;
+                            handleMouseDown(e, 0, 1, 0.1);
+                          }}
+                          onClick={handleInputClick}
+                          onKeyDown={handleKeyDown}
+                          onChange={(e) => handleInputChange(e, 0, 1)} />
+                 </div>
+               </div>
+             </div>
+           )}
          </div>
 
          <button className="train-model-btn">Train Model</button>
@@ -697,18 +884,39 @@ export default function Start() {
                       <div className="sky-position-inputs">
                         <div className="input-group">
                           <label className="input-label">RA</label>
-                          <input type="number" className="filter-input" placeholder="0-360" min="0" max="360"
-                                 onChange={(e) => handleInputChange(e, 0, 360)} />
+                          <input 
+                            ref={raInputRef}
+                            type="number" 
+                            className="filter-input" 
+                            placeholder="0-360" 
+                            min="0" 
+                            max="360"
+                            defaultValue="0"
+                            onChange={(e) => handleInputChange(e, 0, 360)} />
                         </div>
                         <div className="input-group">
                           <label className="input-label">Dec</label>
-                          <input type="number" className="filter-input" placeholder="-90 to 90" min="-90" max="90"
-                                 onChange={(e) => handleInputChange(e, -90, 90)} />
+                          <input 
+                            ref={decInputRef}
+                            type="number" 
+                            className="filter-input" 
+                            placeholder="-90 to 90" 
+                            min="-90" 
+                            max="90"
+                            defaultValue="0"
+                            onChange={(e) => handleInputChange(e, -90, 90)} />
                         </div>
                         <div className="input-group">
                           <label className="input-label">Radius</label>
-                          <input type="number" className="filter-input" placeholder="arcmin" min="0.01" max="30"
-                                 onChange={(e) => handleInputChange(e, 0.01, 30)} />
+                          <input 
+                            ref={radiusInputRef}
+                            type="number" 
+                            className="filter-input" 
+                            placeholder="arcmin" 
+                            min="0.01" 
+                            max="30"
+                            defaultValue="15"
+                            onChange={(e) => handleInputChange(e, 0.01, 30)} />
                           <span className="unit-label">arcmin</span>
                         </div>
                       </div>
@@ -721,11 +929,23 @@ export default function Start() {
                         <span className="info-icon" data-tooltip="Apparent magnitude measures how bright a star appears from Earth. Lower numbers = brighter stars. The Sun is -26.7, bright stars are 0-2, naked-eye limit is ~6, and faint stars can be 15+.">ⓘ</span>
                       </label>
                       <div className="range-inputs">
-                        <input type="number" className="filter-input range-input" defaultValue="6" min="0" max="20"
-                               onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
+                        <input 
+                          ref={magMinInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="6" 
+                          min="0" 
+                          max="20"
+                          onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
                         <span className="range-separator">—</span>
-                        <input type="number" className="filter-input range-input" defaultValue="15" min="0" max="20"
-                               onChange={(e) => handleRangeInputChange(e, 0, 20, false)} />
+                        <input 
+                          ref={magMaxInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="15" 
+                          min="0" 
+                          max="20"
+                          onChange={(e) => handleRangeInputChange(e, 0, 20, false)} />
                       </div>
                     </div>
 
@@ -736,11 +956,23 @@ export default function Start() {
                         <span className="info-icon" data-tooltip="Stellar effective temperature in Kelvin. Cool red dwarfs are ~2500-4000K, Sun-like stars are ~5000-6000K, and hot blue stars can exceed 20000K. Temperature determines the star's color and spectral type.">ⓘ</span>
                       </label>
                       <div className="range-inputs">
-                        <input type="number" className="filter-input range-input" defaultValue="3000" min="2500" max="40000"
-                               onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
+                        <input 
+                          ref={tempMinInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="3000" 
+                          min="2500" 
+                          max="40000"
+                          onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
                         <span className="range-separator">—</span>
-                        <input type="number" className="filter-input range-input" defaultValue="7500" min="2500" max="40000"
-                               onChange={(e) => handleRangeInputChange(e, 2500, 40000, false)} />
+                        <input 
+                          ref={tempMaxInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="7500" 
+                          min="2500" 
+                          max="40000"
+                          onChange={(e) => handleRangeInputChange(e, 2500, 40000, false)} />
                       </div>
                     </div>
 
@@ -751,11 +983,23 @@ export default function Start() {
                         <span className="info-icon" data-tooltip="Distance from Earth measured in parsecs (pc). 1 parsec = 3.26 light-years. Nearby stars are within ~10pc, the solar neighborhood extends to ~100pc, and the galaxy disk is ~30,000pc across.">ⓘ</span>
                       </label>
                       <div className="range-inputs">
-                        <input type="number" className="filter-input range-input" defaultValue="10" min="1" max="10000"
-                               onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
+                        <input 
+                          ref={distMinInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="10" 
+                          min="1" 
+                          max="10000"
+                          onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
                         <span className="range-separator">—</span>
-                        <input type="number" className="filter-input range-input" defaultValue="500" min="1" max="10000"
-                               onChange={(e) => handleRangeInputChange(e, 1, 10000, false)} />
+                        <input 
+                          ref={distMaxInputRef}
+                          type="number" 
+                          className="filter-input range-input" 
+                          defaultValue="500" 
+                          min="1" 
+                          max="10000"
+                          onChange={(e) => handleRangeInputChange(e, 1, 10000, false)} />
                       </div>
                     </div>
 
@@ -774,9 +1018,18 @@ export default function Start() {
 
                     {/* Filter Button */}
                     <div className="filter-group">
-                      <button className="filter-btn" onClick={() => setFilteredStars([])}>
-                        Filter
+                      <button 
+                        className="filter-btn" 
+                        onClick={handleFilterStars}
+                        disabled={isFilterLoading}
+                      >
+                        {isFilterLoading ? 'Filtering...' : 'Filter'}
                       </button>
+                      {filterError && (
+                        <div style={{ color: '#ff6b6b', marginTop: '8px', fontSize: '13px' }}>
+                          {filterError}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -784,7 +1037,11 @@ export default function Start() {
                   <div className="select-star-section">
                     <h4 className="section-subtitle">Select Star</h4>
                     <div className="filtered-stars-list">
-                      {filteredStars.length > 0 ? (
+                      {isFilterLoading ? (
+                        <div className="loading-state" style={{ padding: '20px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
+                          <p>Searching stars...</p>
+                        </div>
+                      ) : filteredStars.length > 0 ? (
                         filteredStars.map((star) => (
                           <div 
                             key={star.id}
@@ -797,6 +1054,9 @@ export default function Start() {
                               <div className="star-details">
                                 <span className="star-type">{star.type}</span>
                                 <span className="star-magnitude">Mag: {star.magnitude}</span>
+                                {typeof star.distance === 'number' && (
+                                  <span className="star-distance">Dist: {star.distance.toFixed(1)} pc</span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -825,14 +1085,7 @@ export default function Start() {
         {/* Test Button for Results Toggle (bottom right) */}
         <button 
           className="test-results-btn"
-          onClick={async () => {
-            if (!hasResults) {
-              await analyzeSelectedStar();
-              setHasResults(true);
-            } else {
-              setHasResults(false);
-            }
-          }}
+          onClick={() => setHasResults(!hasResults)}
         >
           {hasResults ? 'Hide Results' : 'Show Results'}
         </button>
