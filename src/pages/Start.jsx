@@ -677,20 +677,20 @@ export default function Start() {
                           placeholder="Enter cutout size"
                         />
                       </div>
+                      
+                      {/* File Upload Section */}
+                      <div className="fits-upload-section">
+                        <label className="input-label fits-upload-label">Or upload your own data:</label>
+                        <div className="file-upload-box">
+                          <input type="file" id="fileInput" className="file-input" accept=".csv,.json,.fits" />
+                          <label htmlFor="fileInput" className="file-upload-label">
+                            <div className="upload-icon"></div>
+                            <div className="upload-text">Drop data files here CSV, JSON, FITS</div>
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* File Upload Section */}
-              <div className="upload-section">
-                <p className="card-text">Or upload your own data</p>
-                <div className="file-upload-box">
-                  <input type="file" id="fileInput" className="file-input" accept=".csv,.json" />
-                  <label htmlFor="fileInput" className="file-upload-label">
-                    <div className="upload-icon"></div>
-                    <div className="upload-text">Drop data files here CSV, JSON</div>
-                  </label>
                 </div>
               </div>
             </div>

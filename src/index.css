@@ -731,6 +731,12 @@ body{
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* FITS Upload Label Spacing */
+.fits-upload-label {
+  margin-bottom: 12px !important;
+  display: block;
+}
+
 /* Fixed Button */
 .start-analyzing-btn {
   position: sticky;
