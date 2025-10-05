@@ -81,6 +81,36 @@ export default function Start() {
     }
   }
 
+  // Handle date range inputs to ensure start <= end
+  const handleDateRangeChange = (e, isStartDate) => {
+    const input = e.target
+    const dateValue = input.value
+    
+    // Find the paired date input (sibling)
+    const fitsContainer = input.closest('.fits-content')
+    const dateInputs = fitsContainer.querySelectorAll('input[type="date"]')
+    const startInput = dateInputs[0] // First date input is start
+    const endInput = dateInputs[1]   // Second date input is end
+    
+    const startDate = new Date(startInput.value)
+    const endDate = new Date(endInput.value)
+    
+    // Only validate if both dates have values
+    if (startInput.value && endInput.value) {
+      if (isStartDate) {
+        // If start date changed and it's now after end date, update end date
+        if (startDate > endDate) {
+          endInput.value = startInput.value
+        }
+      } else {
+        // If end date changed and it's now before start date, update start date
+        if (endDate < startDate) {
+          startInput.value = endInput.value
+        }
+      }
+    }
+  }
+
   // Handle toggle switch
   const [toggleStates, setToggleStates] = useState({
     qualityMask: true
@@ -477,6 +507,7 @@ export default function Start() {
                         <input 
                           type="date" 
                           className="filter-input"
+                          onChange={(e) => handleDateRangeChange(e, true)}
                         />
                       </div>
                       <div className="fits-input-group">
@@ -484,6 +515,7 @@ export default function Start() {
                         <input 
                           type="date" 
                           className="filter-input"
+                          onChange={(e) => handleDateRangeChange(e, false)}
                         />
                       </div>
                     </div>
