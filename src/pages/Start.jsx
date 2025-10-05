@@ -6,6 +6,8 @@ export default function Start() {
   const navigate = useNavigate()
   const [isHyperParamsOpen, setIsHyperParamsOpen] = useState(false)
   const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState('starSearch') // 'starSearch' or 'starFilter'
+  const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
   
   // Handle typing in inputs to update slider
   const handleInputChange = (e, min, max) => {
@@ -397,127 +399,206 @@ export default function Start() {
      </div>
      
       <div className="glass card w-30 h-90">
+        {/* Tab Navigation */}
+        <div className="tab-navigation">
+          <button 
+            className={`tab-button ${activeTab === 'starSearch' ? 'active' : ''}`}
+            onClick={() => setActiveTab('starSearch')}
+          >
+            Star Search
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'starFilter' ? 'active' : ''}`}
+            onClick={() => setActiveTab('starFilter')}
+          >
+            Star Filter
+          </button>
+        </div>
+
         {/* Scrollable Content Area */}
         <div className="scrollable-content">
-          {/* Star Search Filters */}
-          <div className="star-filters-section">
-            <div className="filter-section-header" onClick={() => setIsStarFiltersOpen(!isStarFiltersOpen)}>
-              <span>Star Search Filters</span>
-              <span className={`expand-icon ${isStarFiltersOpen ? 'expanded' : 'collapsed'}`}>▼</span>
-            </div>
-            
-            {isStarFiltersOpen && (
-              <div className="filter-content">
-                {/* Sky Position */}
-                <div className="filter-group">
-                  <label className="filter-label">Sky position:</label>
-                  <div className="sky-position-inputs">
-                    <div className="input-group">
-                      <label className="input-label">RA</label>
-                      <input type="number" className="filter-input" placeholder="0-360" min="0" max="360"
-                             onChange={(e) => handleInputChange(e, 0, 360)} />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Dec</label>
-                      <input type="number" className="filter-input" placeholder="-90 to 90" min="-90" max="90"
-                             onChange={(e) => handleInputChange(e, -90, 90)} />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Radius</label>
-                      <input type="number" className="filter-input" placeholder="arcmin" min="0.01" max="30"
-                             onChange={(e) => handleInputChange(e, 0.01, 30)} />
-                      <span className="unit-label">arcmin</span>
-                    </div>
-                  </div>
-                </div>
+          {/* Star Search Tab */}
+          {activeTab === 'starSearch' && (
+            <div className="tab-content">
+              {/* Select Telescope */}
+              <div className="filter-group">
+                <label className="filter-label">Select telescope:</label>
+                <select className="filter-dropdown">
+                  <option value="">Select telescope</option>
+                  <option value="tess">TESS</option>
+                  <option value="k2">K2</option>
+                </select>
+              </div>
 
-                {/* Magnitude Range */}
-                <div className="filter-group">
-                  <label className="filter-label">Magnitude range:</label>
-                  <div className="range-inputs">
-                    <input type="number" className="filter-input range-input" defaultValue="6" min="0" max="20"
-                           onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
-                    <span className="range-separator">—</span>
-                    <input type="number" className="filter-input range-input" defaultValue="15" min="0" max="20"
-                           onChange={(e) => handleRangeInputChange(e, 0, 20, false)} />
-                  </div>
-                </div>
+              {/* Select Star by ID */}
+              <div className="filter-group">
+                <label className="filter-label">Select star by ID:</label>
+                <input 
+                  type="text" 
+                  className="filter-input" 
+                  placeholder="Enter star ID"
+                />
+              </div>
 
-                {/* Temperature */}
-                <div className="filter-group">
-                  <label className="filter-label">Temperature (K):</label>
-                  <div className="range-inputs">
-                    <input type="number" className="filter-input range-input" defaultValue="3000" min="2500" max="40000"
-                           onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
-                    <span className="range-separator">—</span>
-                    <input type="number" className="filter-input range-input" defaultValue="7500" min="2500" max="40000"
-                           onChange={(e) => handleRangeInputChange(e, 2500, 40000, false)} />
-                  </div>
-                </div>
-
-                {/* Distance */}
-                <div className="filter-group">
-                  <label className="filter-label">Distance (pc):</label>
-                  <div className="range-inputs">
-                    <input type="number" className="filter-input range-input" defaultValue="10" min="1" max="10000"
-                           onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
-                    <span className="range-separator">—</span>
-                    <input type="number" className="filter-input range-input" defaultValue="500" min="1" max="10000"
-                           onChange={(e) => handleRangeInputChange(e, 1, 10000, false)} />
-                  </div>
-                </div>
-
-                {/* Observation */}
-                <div className="filter-group">
-                  <label className="filter-label">Observation:</label>
-                  <select className="filter-dropdown">
-                    <option value="">Select satellite</option>
-                    <option value="tess">TESS</option>
-                    <option value="k2">K2</option>
-                  </select>
-                </div>
-
-                {/* Flags */}
-                <div className="filter-group">
-                  <label className="filter-label">Flags:</label>
-                  <div className="checkbox-group">
-                    <label className="checkbox-label">
-                      <input type="checkbox" className="filter-checkbox" />
-                      <span className="checkmark"></span>
-                      Variable stars only
-                    </label>
-                    <label className="checkbox-label">
-                      <input type="checkbox" className="filter-checkbox" />
-                      <span className="checkmark"></span>
-                      Has TOI/KOI
-                    </label>
-                  </div>
+              {/* TOI/KOI Lookup */}
+              <div className="filter-group">
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" className="filter-checkbox" />
+                    <span className="checkmark"></span>
+                    Enable TOI/KOI lookup
+                  </label>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Star ID Section */}
-          <div className="star-id-section">
-            <p className="card-text">Choose which star you want to analyze</p>
-            <input 
-              type="text" 
-              className="star-input" 
-              placeholder="Enter star ID"
-            />
-          </div>
+              {/* Change FITS Dropdown */}
+              <div className="filter-group">
+                <div className="fits-dropdown-section">
+                  <div className="filter-section-header" onClick={() => setIsChangeFitsOpen(!isChangeFitsOpen)}>
+                    <span>FITS Configuration</span>
+                    <span className={`expand-icon ${isChangeFitsOpen ? 'expanded' : 'collapsed'}`}>▼</span>
+                  </div>
+                  
+                  {isChangeFitsOpen && (
+                    <div className="fits-content">
+                      <div className="fits-input-group">
+                        <label className="input-label">Sector:</label>
+                        <input 
+                          type="number" 
+                          className="filter-input" 
+                          placeholder="0-1000" 
+                          min="0" 
+                          max="1000"
+                          onChange={(e) => handleInputChange(e, 0, 1000)}
+                        />
+                      </div>
+                      <div className="fits-input-group">
+                        <label className="input-label">Start:</label>
+                        <input 
+                          type="date" 
+                          className="filter-input"
+                        />
+                      </div>
+                      <div className="fits-input-group">
+                        <label className="input-label">End:</label>
+                        <input 
+                          type="date" 
+                          className="filter-input"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* File Upload */}
-          <div className="upload-section">
-            <p className="card-text">Or upload your own data</p>
-            <div className="file-upload-box">
-              <input type="file" id="fileInput" className="file-input" accept=".csv,.json" />
-              <label htmlFor="fileInput" className="file-upload-label">
-                <div className="upload-icon"></div>
-                <div className="upload-text">Drop data files here CSV, JSON</div>
-              </label>
+              {/* File Upload Section */}
+              <div className="upload-section">
+                <p className="card-text">Or upload your own data</p>
+                <div className="file-upload-box">
+                  <input type="file" id="fileInput" className="file-input" accept=".csv,.json" />
+                  <label htmlFor="fileInput" className="file-upload-label">
+                    <div className="upload-icon"></div>
+                    <div className="upload-text">Drop data files here CSV, JSON</div>
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Star Filter Tab */}
+          {activeTab === 'starFilter' && (
+            <div className="tab-content">
+              <div className="star-filters-section">
+                <div className="filter-content">
+                    {/* Sky Position */}
+                    <div className="filter-group">
+                      <label className="filter-label">Sky position:</label>
+                      <div className="sky-position-inputs">
+                        <div className="input-group">
+                          <label className="input-label">RA</label>
+                          <input type="number" className="filter-input" placeholder="0-360" min="0" max="360"
+                                 onChange={(e) => handleInputChange(e, 0, 360)} />
+                        </div>
+                        <div className="input-group">
+                          <label className="input-label">Dec</label>
+                          <input type="number" className="filter-input" placeholder="-90 to 90" min="-90" max="90"
+                                 onChange={(e) => handleInputChange(e, -90, 90)} />
+                        </div>
+                        <div className="input-group">
+                          <label className="input-label">Radius</label>
+                          <input type="number" className="filter-input" placeholder="arcmin" min="0.01" max="30"
+                                 onChange={(e) => handleInputChange(e, 0.01, 30)} />
+                          <span className="unit-label">arcmin</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Magnitude Range */}
+                    <div className="filter-group">
+                      <label className="filter-label">Magnitude range:</label>
+                      <div className="range-inputs">
+                        <input type="number" className="filter-input range-input" defaultValue="6" min="0" max="20"
+                               onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
+                        <span className="range-separator">—</span>
+                        <input type="number" className="filter-input range-input" defaultValue="15" min="0" max="20"
+                               onChange={(e) => handleRangeInputChange(e, 0, 20, false)} />
+                      </div>
+                    </div>
+
+                    {/* Temperature */}
+                    <div className="filter-group">
+                      <label className="filter-label">Temperature (K):</label>
+                      <div className="range-inputs">
+                        <input type="number" className="filter-input range-input" defaultValue="3000" min="2500" max="40000"
+                               onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
+                        <span className="range-separator">—</span>
+                        <input type="number" className="filter-input range-input" defaultValue="7500" min="2500" max="40000"
+                               onChange={(e) => handleRangeInputChange(e, 2500, 40000, false)} />
+                      </div>
+                    </div>
+
+                    {/* Distance */}
+                    <div className="filter-group">
+                      <label className="filter-label">Distance (pc):</label>
+                      <div className="range-inputs">
+                        <input type="number" className="filter-input range-input" defaultValue="10" min="1" max="10000"
+                               onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
+                        <span className="range-separator">—</span>
+                        <input type="number" className="filter-input range-input" defaultValue="500" min="1" max="10000"
+                               onChange={(e) => handleRangeInputChange(e, 1, 10000, false)} />
+                      </div>
+                    </div>
+
+                    {/* Observation */}
+                    <div className="filter-group">
+                      <label className="filter-label">Observation:</label>
+                      <select className="filter-dropdown">
+                        <option value="">Select satellite</option>
+                        <option value="tess">TESS</option>
+                        <option value="k2">K2</option>
+                      </select>
+                    </div>
+
+                    {/* Flags */}
+                    <div className="filter-group">
+                      <label className="filter-label">Flags:</label>
+                      <div className="checkbox-group">
+                        <label className="checkbox-label">
+                          <input type="checkbox" className="filter-checkbox" />
+                          <span className="checkmark"></span>
+                          Variable stars only
+                        </label>
+                        <label className="checkbox-label">
+                          <input type="checkbox" className="filter-checkbox" />
+                          <span className="checkmark"></span>
+                          Has TOI/KOI
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Fixed Button Outside Scroll */}

@@ -530,7 +530,6 @@ body{
   margin-bottom: 12px;
   cursor: pointer;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .filter-content {
@@ -570,6 +569,7 @@ body{
 }
 
 .filter-input {
+  width: 100%;
   padding: 6px 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
@@ -751,4 +751,75 @@ body{
 
 .start-analyzing-btn:hover {
   background-color: #e0e0e0;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  margin-bottom: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+/* Tab Content */
+.tab-content {
+  padding: 8px 0;
+}
+
+/* FITS Dropdown Section */
+.fits-dropdown-section {
+  margin-top: 8px;
+}
+
+.fits-content {
+  padding: 12px 0;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-top: 8px;
+  padding: 16px;
+}
+
+.fits-input-group {
+  margin-bottom: 12px;
+}
+
+.fits-input-group:last-child {
+  margin-bottom: 0;
+}
+
+.fits-input-group .input-label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.fits-input-group .filter-input {
+  width: 100%;
 }
