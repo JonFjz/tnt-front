@@ -35,7 +35,7 @@ export default function Start() {
     }
   }, [warpDone, dataReady])
   
-  const apiUrl = 'https://tnt.thot.info/api'
+  const apiUrl = '/api'
 
   const handleStarSelected = async (star) => {
     // Only select the star in sky view; don't analyze yet
@@ -298,7 +298,7 @@ export default function Start() {
 
   return (
     <main className="page">
-     <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} />
+     <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} selectedStar={skySelectedStar} />
      <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
      {showSystem && resultsData && (
        <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); }} />

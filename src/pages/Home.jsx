@@ -1,5 +1,6 @@
 
-import Starfield from '../components/Starfield.jsx'
+import Starfield from '../components/StarfieldStart.jsx'
+
 import GlassButton from '../components/GlassButton.jsx'
 import { BsRocketTakeoff, BsPeople } from 'react-icons/bs'
 // If you want the 3D version, import Kepler3D and use it below.
