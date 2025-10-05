@@ -1261,6 +1261,96 @@ body{
   background-color: rgba(255, 255, 255, 0.5);
 }
 
+/* Basic Stars Section */
+.basic-stars-section {
+  padding: 0;
+}
+
+.stars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 6px; /* Space for scrollbar */
+}
+
+/* Custom scrollbar for stars list */
+.stars-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stars-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stars-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.stars-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.star-item {
+  padding: 12px 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.star-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.star-item.selected {
+  background-color: rgba(74, 158, 255, 0.2);
+  border-color: #4a9eff;
+  box-shadow: 0 0 0 1px rgba(74, 158, 255, 0.3);
+}
+
+.star-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.star-name {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.star-id {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.star-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.star-type {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.star-magnitude {
+  color: #4a9eff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 /* Test Button for Results Toggle */
 .test-results-btn {
   position: fixed;

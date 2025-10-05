@@ -6,7 +6,8 @@ export default function Start() {
   const navigate = useNavigate()
   const [isHyperParamsOpen, setIsHyperParamsOpen] = useState(false)
   const [isStarFiltersOpen, setIsStarFiltersOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState('starSearch') // 'starSearch' or 'starFilter'
+  const [activeTab, setActiveTab] = useState('basicStars') // 'basicStars', 'starSearch', or 'starFilter'
+  const [selectedStar, setSelectedStar] = useState(null) // Track selected star from basic stars list
   const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
   const [hasResults, setHasResults] = useState(false) // Results state from backend
   const [resultsData, setResultsData] = useState(null) // Store actual results data
@@ -539,6 +540,12 @@ export default function Start() {
             {/* Tab Navigation */}
             <div className="tab-navigation">
               <button 
+                className={`tab-button ${activeTab === 'basicStars' ? 'active' : ''}`}
+                onClick={() => setActiveTab('basicStars')}
+              >
+                Basic Stars
+              </button>
+              <button 
                 className={`tab-button ${activeTab === 'starSearch' ? 'active' : ''}`}
                 onClick={() => setActiveTab('starSearch')}
               >
@@ -554,6 +561,45 @@ export default function Start() {
 
             {/* Scrollable Content Area */}
             <div className="scrollable-content">
+          {/* Basic Stars Tab */}
+          {activeTab === 'basicStars' && (
+            <div className="tab-content">
+              <div className="basic-stars-section">
+                <div className="stars-list">
+                  {[
+                    { id: 'TIC-123456789', name: 'Proxima Centauri', type: 'Red Dwarf', magnitude: '11.13' },
+                    { id: 'TIC-987654321', name: 'Alpha Centauri A', type: 'G-type', magnitude: '-0.27' },
+                    { id: 'TIC-555444333', name: 'Betelgeuse', type: 'Red Supergiant', magnitude: '0.58' },
+                    { id: 'TIC-111222333', name: 'Sirius A', type: 'A-type', magnitude: '-1.46' },
+                    { id: 'TIC-777888999', name: 'Vega', type: 'A-type', magnitude: '0.03' },
+                    { id: 'TIC-444555666', name: 'Arcturus', type: 'Red Giant', magnitude: '-0.05' },
+                    { id: 'TIC-666777888', name: 'Capella A', type: 'G-type', magnitude: '0.08' },
+                    { id: 'TIC-222333444', name: 'Rigel', type: 'Blue Supergiant', magnitude: '0.13' },
+                    { id: 'TIC-888999000', name: 'Procyon A', type: 'F-type', magnitude: '0.34' },
+                    { id: 'TIC-333444555', name: 'Aldebaran', type: 'Red Giant', magnitude: '0.85' },
+                    { id: 'TIC-999000111', name: 'Spica', type: 'Blue Giant', magnitude: '1.04' },
+                    { id: 'TIC-555666777', name: 'Pollux', type: 'K-type Giant', magnitude: '1.14' }
+                  ].map((star) => (
+                    <div 
+                      key={star.id}
+                      className={`star-item ${selectedStar?.id === star.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedStar(star)}
+                    >
+                      <div className="star-info">
+                        <div className="star-name">{star.name}</div>
+                        <div className="star-id">{star.id}</div>
+                        <div className="star-details">
+                          <span className="star-type">{star.type}</span>
+                          <span className="star-magnitude">Mag: {star.magnitude}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Star Search Tab */}
           {activeTab === 'starSearch' && (
             <div className="tab-content">
