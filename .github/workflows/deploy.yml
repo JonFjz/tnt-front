@@ -32,7 +32,7 @@ jobs:
       run: docker build -t tnt-front .
 
     - name: Run Docker container
-      run: docker run -d -p 80:80 --restart=unless-stopped --name tnt-front tnt-front
+      run: docker run -d -p 8081:80 --restart=unless-stopped --name tnt-front tnt-front
 
     # - name: Verify deployment
     #   run: |
