@@ -75,7 +75,11 @@ export default function Start() {
       }
     }
 
-    const s = Array.isArray(detailed) ? detailed[0] : (detailed || skySelectedStar)
+    const s = Array.isArray(detailed) ? detailed[0] : (detailed || skySelectedStar || {
+      GAIA: 'MOCK-12345', ra: 180.0, dec: 0.0, Tmag: 10.5, Teff: 5600, d: 120,
+      pl_pnum: 2, pl_orbper: 4.1, pl_trandep: 1200, pl_trandurh: 1.8,
+      transits: [ { period: '4.1 days' }, { period: '9.6 days' } ]
+    })
     const mapped = {
       starId: s?.GAIA || s?.ID || s?.tid || s?.ALLWISE || s?.TWOMASS || s?.UCAC || s?.TYC || 'Unknown',
       ra: (s?.ra ?? s?.RA_orig) != null ? String(s.ra ?? s.RA_orig) + '°' : '—',
@@ -298,11 +302,12 @@ export default function Start() {
 
   return (
     <main className="page">
-     <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} selectedStar={skySelectedStar} />
-     <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
-     {showSystem && resultsData && (
+          {showSystem && resultsData && (
        <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); setWarpDone(false); setDataReady(false); }} />
      )}
+     <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} selectedStar={skySelectedStar} />
+     <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
+ 
      
      {/* Hyper Parameters Button - Hide when results exist */}
      {!hasResults && (
@@ -928,7 +933,14 @@ export default function Start() {
         {/* Test Button for Results Toggle (bottom right) */}
         <button 
           className="test-results-btn"
-          onClick={() => setHasResults(!hasResults)}
+          onClick={async () => {
+            if (!hasResults) {
+              await analyzeSelectedStar();
+              setHasResults(true);
+            } else {
+              setHasResults(false);
+            }
+          }}
         >
           {hasResults ? 'Hide Results' : 'Show Results'}
         </button>

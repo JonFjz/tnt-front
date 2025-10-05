@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import axios from 'axios'
+// Remove import starDataJson from '../assets/APIreturnLarge.json'
 
 // Three.js is loaded dynamically to avoid SSR issues and keep bundle lean
-export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStarSelected, selectedStar }) {
+export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStarSelected, selectedStar, ra = 266.4170, dec = -29.0078, radius = 30, temp_min = 3000, temp_max = 4500 }) {
 	const containerRef = useRef(null)
 	const threeRef = useRef({})
 	const starsRef = useRef({ points: null, data: [] })
@@ -32,7 +33,7 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 
 			const scene = new Scene()
 			const camera = new PerspectiveCamera(60, width / height, 0.01, 20000)
-			camera.position.set(0, 0, 0.1)
+			camera.position.set(0, 0, 0)
 
 			const controls = new OrbitControls(camera, renderer.domElement)
 			controls.enableDamping = true
@@ -60,12 +61,11 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 			const colors = []
 			const color = new Color()
 
-			// Fetch stars
+			// Fetch stars from API with filter params
 			let fetched = []
 			try {
-				// Use /search endpoint with explicit defaults
 				const base = apiUrl.replace(/\/$/, '')
-				const url = `${base}/search?ra=0&dec=0&radius=5`
+				const url = `${base}/search?ra=${ra}&dec=${dec}&radius=${radius}&temp_min=${temp_min}&temp_max=${temp_max}`
 				const res = await axios.get(url)
 				const json = res?.data
 				if (Array.isArray(json?.data)) {
@@ -76,18 +76,21 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 					fetched = json
 				}
 			} catch (e) {
-				// eslint-disable-next-line no-console
 				console.error('Failed to fetch stars', e)
 			}
 
-			// Do not use mock fallback; prefer real API data only
-
 			// Normalize and project to unit sphere using RA/Dec (in degrees)
-			// Prefer 'ra'/'dec' else 'RA_orig'/'Dec_orig'
+			// Prefer 'ra'/'dec' (degrees) else 'RA_orig'/'Dec_orig' (radians, convert to deg)
 			const starData = fetched
 				.map((s) => {
-					const raDeg = (typeof s.ra === 'number' ? s.ra : (typeof s.RA_orig === 'number' ? s.RA_orig * (180 / Math.PI) : null))
-					const decDeg = (typeof s.dec === 'number' ? s.dec : (typeof s.Dec_orig === 'number' ? s.Dec_orig * (180 / Math.PI) : null))
+					let raDeg = null, decDeg = null
+					if (typeof s.ra === 'number' && typeof s.dec === 'number') {
+						raDeg = s.ra
+						decDeg = s.dec
+					} else if (typeof s.RA_orig === 'number' && typeof s.Dec_orig === 'number') {
+						raDeg = s.RA_orig * (180 / Math.PI)
+						decDeg = s.Dec_orig * (180 / Math.PI)
+					}
 					return { ...s, raDeg, decDeg }
 				})
 				.filter(s => Number.isFinite(s.raDeg) && Number.isFinite(s.decDeg))
@@ -112,7 +115,7 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 			}
 			const starSizes = []
 			starData.forEach((s) => {
-				const [x, y, z] = toCartesian(s.raDeg, s.decDeg, 1)
+				const [x, y, z] = toCartesian(s.raDeg, s.decDeg, 10) // Increased radius for further stars
 				positions.push(x, y, z)
 				// Color by temperature if available (blue-hot, red-cool)
 				const teff = s.Teff ?? s.st_teff
@@ -136,7 +139,20 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 			const points = new Points(starGeometry, starMaterial)
 			scene.add(points)
 
+			// After creating the main star points and adding to scene
 			starsRef.current = { points, data: starData, starMaterial }
+
+			// --- Focus on a random star (no ring highlight) ---
+			if (starData.length > 0) {
+				const randomIdx = Math.floor(Math.random() * starData.length)
+				const randomStar = starData[randomIdx]
+				const [x, y, z] = toCartesian(randomStar.raDeg, randomStar.decDeg, 10) // Match radius
+
+				// Move camera to look at the random star
+				camera.position.set(x * 5, y * 5, z * 5)
+				controls.target.set(x, y, z)
+				controls.update()
+			}
 
 			// Background faint star layer for night-sky feel
 			const bgCount = 6000
@@ -312,7 +328,7 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 				}
 			}
 		}
-	}, [apiUrl, onStarSelected])
+	}, [apiUrl, onStarSelected, ra, dec, radius, temp_min, temp_max])
 
 	// Update highlight when selection changes
 	useEffect(() => {
@@ -340,5 +356,3 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 		/>
 	)
 }
-
-
