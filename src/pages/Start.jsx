@@ -203,7 +203,8 @@ export default function Start() {
 
   // Handle toggle switch
   const [toggleStates, setToggleStates] = useState({
-    qualityMask: true
+    findOptimalThreshold: true,
+    doOversample: true
   })
 
   const handleToggle = (toggleName) => {
@@ -320,198 +321,89 @@ export default function Start() {
      {/* Hyper Parameters Panel - Hide when results exist */}
      {!hasResults && isHyperParamsOpen && (
        <div className="hyper-params-panel">
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('presets')}>
-             <span>Presets</span>
-             <span className={`expand-icon ${sectionStates.presets ? 'expanded' : 'collapsed'}`}>▼</span>
+         <div className="param-item">
+           <label>learning_rate</label>
+           <div className="param-input-wrapper">
+             <input type="number" step="0.01" defaultValue="0.1" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
            </div>
-           {sectionStates.presets && (
-             <div className="param-content">
-               {/* Content for presets will go here when needed */}
-             </div>
-           )}
-         </div>
-         
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('preprocessing')}>
-             <span>Preprocessing</span>
-             <span className={`expand-icon ${sectionStates.preprocessing ? 'expanded' : 'collapsed'}`}>▼</span>
-           </div>
-           {sectionStates.preprocessing && (
-             <div className="param-content">
-               <div className="param-item">
-                 <label>Sigma-clip</label>
-                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="6">
-                   <input type="number" min="1" max="10" defaultValue="6" className="param-input" 
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return; // Double click to select
-                            handleMouseDown(e, 1, 10);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 1, 10)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>Resampling cadence</label>
-                 <div className="param-input-wrapper" data-min="10" data-max="100" data-value="60">
-                   <input type="number" min="10" max="100" defaultValue="60" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 10, 100);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 10, 100)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>Quality mask</label>
-                 <div 
-                   className={`param-toggle ${toggleStates.qualityMask ? 'on' : 'off'}`}
-                   onClick={() => handleToggle('qualityMask')}
-                 >
-                   {toggleStates.qualityMask ? 'ON' : 'OFF'}
-                 </div>
-               </div>
-             </div>
-           )}
          </div>
 
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('transitSearch')}>
-             <span>Transit search</span>
-             <span className={`expand-icon ${sectionStates.transitSearch ? 'expanded' : 'collapsed'}`}>▼</span>
+         <div className="param-item">
+           <label>num_leaves</label>
+           <div className="param-input-wrapper">
+             <input type="number" defaultValue="31" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
            </div>
-           {sectionStates.transitSearch && (
-             <div className="param-content">
-               <div className="param-item">
-                 <label>Period range(days)</label>
-                 <div className="param-input-wrapper" data-min="1" data-max="1000" data-value="365">
-                   <input type="number" min="1" max="1000" defaultValue="365" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 1, 1000);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 1, 1000)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>Max planets</label>
-                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="4">
-                   <input type="number" min="1" max="10" defaultValue="4" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 1, 10);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 1, 10)} />
-                 </div>
-               </div>
-             </div>
-           )}
          </div>
 
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('featureExtraction')}>
-             <span>Feature extraction</span>
-             <span className={`expand-icon ${sectionStates.featureExtraction ? 'expanded' : 'collapsed'}`}>▼</span>
+         <div className="param-item">
+           <label>max_depth</label>
+           <div className="param-input-wrapper">
+             <input type="number" defaultValue="6" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
            </div>
-           {sectionStates.featureExtraction && (
-             <div className="param-content">
-               {/* Content for feature extraction will go here when needed */}
-             </div>
-           )}
          </div>
 
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('model')}>
-             <span>Model</span>
-             <span className={`expand-icon ${sectionStates.model ? 'expanded' : 'collapsed'}`}>▼</span>
+         <div className="param-item">
+           <label>scale_pos_weight</label>
+           <div className="param-input-wrapper">
+             <input type="number" step="0.1" defaultValue="3.0" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
            </div>
-           {sectionStates.model && (
-             <div className="param-content">
-               <div className="param-item">
-                 <label>n_estimators</label>
-                 <div className="param-input-wrapper" data-min="100" data-max="1000" data-value="800">
-                   <input type="number" min="100" max="1000" defaultValue="800" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 100, 1000);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 100, 1000)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>learning_rate</label>
-                 <div className="param-input-wrapper" data-min="0.01" data-max="1" data-value="0.07">
-                   <input type="number" min="0.01" max="1" step="0.01" defaultValue="0.07" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 0.01, 1, 0.01);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 0.01, 1)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>max_depth</label>
-                 <div className="param-input-wrapper" data-min="1" data-max="10" data-value="4">
-                   <input type="number" min="1" max="10" defaultValue="4" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 1, 10);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 1, 10)} />
-                 </div>
-               </div>
-             </div>
-           )}
          </div>
 
-         <div className="param-section">
-           <div className="param-section-header" onClick={() => toggleSection('decisionThreshold')}>
-             <span>Decision threshold</span>
-             <span className={`expand-icon ${sectionStates.decisionThreshold ? 'expanded' : 'collapsed'}`}>▼</span>
+         <div className="param-item">
+           <label>false_positive_weight</label>
+           <div className="param-input-wrapper">
+             <input type="number" step="0.1" defaultValue="1.8" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
            </div>
-           {sectionStates.decisionThreshold && (
-             <div className="param-content">
-               <div className="param-item">
-                 <label>Recall Focus</label>
-                 <div className="param-input-wrapper" data-min="0" data-max="1" data-value="0.3">
-                   <input type="number" min="0" max="1" step="0.1" defaultValue="0.3" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 0, 1, 0.1);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 0, 1)} />
-                 </div>
-               </div>
-               <div className="param-item">
-                 <label>Precision Focus</label>
-                 <div className="param-input-wrapper" data-min="0" data-max="1" data-value="0.7">
-                   <input type="number" min="0" max="1" step="0.1" defaultValue="0.7" className="param-input"
-                          onMouseDown={(e) => {
-                            if (e.detail === 2) return;
-                            handleMouseDown(e, 0, 1, 0.1);
-                          }}
-                          onClick={handleInputClick}
-                          onKeyDown={handleKeyDown}
-                          onChange={(e) => handleInputChange(e, 0, 1)} />
-                 </div>
-               </div>
-             </div>
-           )}
+         </div>
+
+         <div className="param-item">
+           <label>optimization_type</label>
+           <div className="param-input-wrapper">
+             <select className="param-select" defaultValue="precision">
+               <option value="precision">precision</option>
+               <option value="recall">recall</option>
+               <option value="balanced">balanced</option>
+             </select>
+           </div>
+         </div>
+
+         <div className="param-item">
+           <label>test_size</label>
+           <div className="param-input-wrapper">
+             <input type="number" step="0.05" defaultValue="0.3" className="param-input"
+                    onClick={handleInputClick}
+                    onKeyDown={handleKeyDown} />
+           </div>
+         </div>
+
+         <div className="param-item">
+           <label>find_optimal_threshold</label>
+           <div 
+             className={`param-toggle ${toggleStates.findOptimalThreshold ? 'on' : 'off'}`}
+             onClick={() => handleToggle('findOptimalThreshold')}
+           >
+             {toggleStates.findOptimalThreshold ? 'ON' : 'OFF'}
+           </div>
+         </div>
+
+         <div className="param-item">
+           <label>do_oversample</label>
+           <div 
+             className={`param-toggle ${toggleStates.doOversample ? 'on' : 'off'}`}
+             onClick={() => handleToggle('doOversample')}
+           >
+             {toggleStates.doOversample ? 'ON' : 'OFF'}
+           </div>
          </div>
 
          <button className="train-model-btn">Train Model</button>
