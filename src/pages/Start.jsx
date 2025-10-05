@@ -29,11 +29,11 @@ export default function Start() {
   const [showSystem, setShowSystem] = useState(false)
 
   useEffect(() => {
-    if (warpDone && dataReady) {
+    if (dataReady && (warpDone || !warpActive)) {
       setShowSystem(true)
       setWarpActive(false)
     }
-  }, [warpDone, dataReady])
+  }, [warpDone, dataReady, warpActive])
   
   const apiUrl = '/api'
 
@@ -301,7 +301,7 @@ export default function Start() {
      <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} selectedStar={skySelectedStar} />
      <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
      {showSystem && resultsData && (
-       <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); }} />
+       <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); setWarpDone(false); setDataReady(false); }} />
      )}
      
      {/* Hyper Parameters Button - Hide when results exist */}

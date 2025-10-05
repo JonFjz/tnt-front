@@ -1,5 +1,5 @@
 
-import Starfield from '../components/StarfieldStart.jsx'
+import Starfield from '../components/StarFieldStart.jsx'
 
 import GlassButton from '../components/GlassButton.jsx'
 import { BsRocketTakeoff, BsPeople } from 'react-icons/bs'
