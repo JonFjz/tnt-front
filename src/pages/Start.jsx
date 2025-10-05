@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Starfield from '../components/Starfield.jsx'
+import StarWarp from '../components/StarWarp.jsx'
+import StarSystem from '../components/StarSystem.jsx'
 
 export default function Start() {
   const navigate = useNavigate()
@@ -18,8 +20,80 @@ export default function Start() {
   ]) // Store filtered stars from star filter
   const [selectedFilteredStar, setSelectedFilteredStar] = useState(null) // Track selected star from filtered list
   const [isChangeFitsOpen, setIsChangeFitsOpen] = useState(false)
-  const [hasResults, setHasResults] = useState(false) // Results state from backend
+  const [hasResults, setHasResults] = useState(false) // legacy side-panel results
   const [resultsData, setResultsData] = useState(null) // Store actual results data
+  const [skySelectedStar, setSkySelectedStar] = useState(null) // Selected from sky view
+  const [warpActive, setWarpActive] = useState(false)
+  const [warpDone, setWarpDone] = useState(false)
+  const [dataReady, setDataReady] = useState(false)
+  const [showSystem, setShowSystem] = useState(false)
+
+  useEffect(() => {
+    if (warpDone && dataReady) {
+      setShowSystem(true)
+      setWarpActive(false)
+    }
+  }, [warpDone, dataReady])
+  
+  const apiUrl = 'https://tnt.thot.info/api'
+
+  const handleStarSelected = async (star) => {
+    // Only select the star in sky view; don't analyze yet
+    setSkySelectedStar(star)
+  }
+
+  const analyzeSelectedStar = async () => {
+    if (!skySelectedStar) return
+    setWarpActive(true)
+    setWarpDone(false)
+    setDataReady(false)
+
+    // Try to fetch detailed system data with any available identifier
+    const candidateIds = [
+      skySelectedStar?.ID,
+      skySelectedStar?.objID,
+      skySelectedStar?.tid,
+      skySelectedStar?.GAIA,
+      skySelectedStar?.ALLWISE,
+      skySelectedStar?.TWOMASS,
+      skySelectedStar?.UCAC,
+      skySelectedStar?.TYC
+    ].filter(Boolean)
+
+    let detailed = null
+    for (const id of candidateIds) {
+      try {
+        const analyzeUrl = `${apiUrl.replace(/\/$/, '')}/analyze?id=${encodeURIComponent(id)}`
+        const resp = await fetch(analyzeUrl, { headers: { 'accept': 'application/json' } })
+        const json = await resp.json()
+        if (json?.response || json?.data || json) {
+          detailed = json.response || json.data || json
+          break
+        }
+      } catch (e) {
+        // Ignore and try next id
+      }
+    }
+
+    const s = Array.isArray(detailed) ? detailed[0] : (detailed || skySelectedStar)
+    const mapped = {
+      starId: s?.GAIA || s?.ID || s?.tid || s?.ALLWISE || s?.TWOMASS || s?.UCAC || s?.TYC || 'Unknown',
+      ra: (s?.ra ?? s?.RA_orig) != null ? String(s.ra ?? s.RA_orig) + '°' : '—',
+      dec: (s?.dec ?? s?.Dec_orig) != null ? String(s.dec ?? s.Dec_orig) + '°' : '—',
+      magnitude: s?.Tmag ?? s?.GAIAmag ?? s?.Vmag ?? s?.st_tmag ?? '—',
+      temperature: s?.Teff ?? s?.st_teff ? String(s?.Teff ?? s?.st_teff) + ' K' : '—',
+      distance: s?.d ?? s?.st_dist ? String(s?.d ?? s?.st_dist) + ' pc' : '—',
+      exoplanetCount: s?.pl_pnum ?? undefined,
+      transits: s?.pl_orbper ? [{ period: `${s.pl_orbper} days`, depth: s.pl_trandep ? `${s.pl_trandep}` : undefined, duration: s.pl_trandurh ? `${s.pl_trandurh} h` : undefined }] : undefined,
+      confidence: undefined,
+      threshold: undefined,
+      snr: undefined,
+      processingTime: undefined
+    }
+
+    setResultsData(mapped)
+    setDataReady(true)
+  }
   
   // Handle typing in inputs to update slider
   const handleInputChange = (e, min, max) => {
@@ -224,7 +298,11 @@ export default function Start() {
 
   return (
     <main className="page">
-     <Starfield />
+     <Starfield apiUrl={apiUrl} onStarSelected={handleStarSelected} />
+     <StarWarp active={warpActive} onComplete={() => { setWarpDone(true); }} />
+     {showSystem && resultsData && (
+       <StarSystem data={resultsData} onBack={() => { setShowSystem(false); setResultsData(null); setSkySelectedStar(null); }} />
+     )}
      
      {/* Hyper Parameters Button - Hide when results exist */}
      {!hasResults && (
@@ -820,7 +898,9 @@ export default function Start() {
 
         {/* Fixed Button Outside Scroll - Hide when results exist */}
         {!hasResults && (
-          <button className="start-analyzing-btn">Start Analyzing</button>
+          <button className="start-analyzing-btn" disabled={!skySelectedStar} onClick={analyzeSelectedStar}>
+            {skySelectedStar ? 'Analyze Selected Star' : 'Select a star to analyze'}
+          </button>
         )}
 
         {/* Test Button for Results Toggle (bottom right) */}

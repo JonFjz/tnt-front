@@ -1,259 +1,267 @@
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from 'react'
+import axios from 'axios'
 
-export default function Starfield() {
-  const bgRef = useRef(null); // static layer: tiny stars + bottom glow
-  const fxRef = useRef(null); // animated layer: medium/bright stars
+// Three.js is loaded dynamically to avoid SSR issues and keep bundle lean
+export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStarSelected }) {
+	const containerRef = useRef(null)
+	const threeRef = useRef({})
+	const starsRef = useRef({ points: null, data: [] })
 
-  useEffect(() => {
-    const bg = bgRef.current;
-    const fx = fxRef.current;
-    const bgCtx = bg.getContext("2d");
-    const fxCtx = fx.getContext("2d");
+	useEffect(() => {
+		let mounted = true
 
-    // Tuned for realism + restraint
-    const CFG = {
-      densitySmall: 1 / 2400,   // static pinpricks
-      densityMed:   1 / 12000,  // animated
-      densityBig:   1 / 30000,  // animated (few brights)
-      driftX: 0.15,             // barely perceptible drift
-      twinkleSpeed: 0.28,       // slow brightness modulation
-      appearSpeed:  0.02,       // slow fade cycle
-      band: false,              // set true for diagonal bias
-      maxDPR: 1.5,              // clamp DPI to keep fill cheap
-      targetFPS: 30,            // throttle
-      bottomGlowStrength: 0.10, // softer white light from bottom
-    };
+		async function init() {
+			const [{ WebGLRenderer, Scene, PerspectiveCamera, BufferGeometry, BufferAttribute, PointsMaterial, Points, SphereGeometry, MeshBasicMaterial, BackSide, Mesh, Raycaster, Vector2, Color }, { OrbitControls }] = await Promise.all([
+				import('three'),
+				import('three/examples/jsm/controls/OrbitControls.js')
+			])
 
-    let DPR = 1, W = 0, H = 0, raf;
-    let smallStars = []; // static points
-    let stars = [];      // animated medium/bright
-    let sprites = {};    // cached star sprites
-    let last = 0, acc = 0, frameMs = 1000 / CFG.targetFPS;
+			if (!mounted || !containerRef.current) return
 
-    // ---------- helpers ----------
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    function rndGauss(mu = 0, sigma = 1) {
-      const u = 1 - Math.random(), v = Math.random();
-      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sigma + mu;
-    }
-    function bandY(x, angle = -0.45, spread = 80) {
-      const cx = W / 2, cy = H / 2;
-      return Math.tan(angle) * (x - cx) + cy + rndGauss(0, spread);
-    }
-    function clampDPR() {
-      return Math.min(CFG.maxDPR, window.devicePixelRatio || 1);
-    }
-    function smoothstep(e0, e1, x) {
-      const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-      return t * t * (3 - 2 * t);
-    }
+			const container = containerRef.current
+			const width = container.clientWidth
+			const height = container.clientHeight
 
-    // Photographic-looking point spread function:
-    // tiny, crisp core + short halo; subtle chroma helps realism.
-    function makePSFSprite({ rCore, rHalo, tintH = 210 }) {
-      const R = rHalo; // total radius we paint to
-      const size = Math.ceil((R) * 2 + 2);
-      const c = document.createElement("canvas");
-      c.width = c.height = size;
-      const ctx = c.getContext("2d");
-      const cx = size / 2, cy = size / 2;
+			const renderer = new WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true })
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+			renderer.setSize(width, height)
+			renderer.domElement.style.position = 'absolute'
+			renderer.domElement.style.inset = '0'
+			renderer.setClearColor(0x000008, 1)
+			container.appendChild(renderer.domElement)
 
-      // Additive composition inside the sprite to keep a hot core
-      ctx.globalCompositeOperation = "lighter";
+			const scene = new Scene()
+			const camera = new PerspectiveCamera(60, width / height, 0.01, 2000)
+			camera.position.set(0, 0, 2.2)
 
-      // 1) Crisp core
-      const gCore = ctx.createRadialGradient(cx, cy, 0, cx, cy, rCore);
-      gCore.addColorStop(0.0, "rgba(255,255,255,1)");
-      gCore.addColorStop(0.9, "rgba(255,255,255,0.85)");
-      gCore.addColorStop(1.0, "rgba(255,255,255,0.0)");
-      ctx.fillStyle = gCore;
-      ctx.beginPath(); ctx.arc(cx, cy, rCore, 0, Math.PI * 2); ctx.fill();
+			const controls = new OrbitControls(camera, renderer.domElement)
+			controls.enableDamping = true
+			controls.rotateSpeed = 0.3
+			controls.zoomSpeed = 0.6
+			controls.panSpeed = 0.4
+			controls.enablePan = true
+			controls.minDistance = 1.1
+			controls.maxDistance = 20
+			let isDragging = false
+			controls.addEventListener('start', () => { isDragging = true })
+			controls.addEventListener('end', () => { setTimeout(() => { isDragging = false }, 0) })
 
-      // 2) Very short, soft halo (exponential falloff feel)
-      const gHalo = ctx.createRadialGradient(cx, cy, rCore * 0.6, cx, cy, R);
-      gHalo.addColorStop(0.0, "rgba(255,255,255,0.35)");
-      gHalo.addColorStop(0.6, "rgba(255,255,255,0.10)");
-      gHalo.addColorStop(1.0, "rgba(255,255,255,0.0)");
-      ctx.fillStyle = gHalo;
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+			// Sky sphere (inverted) to give a sense of background sky
+			const skyGeo = new SphereGeometry(1000, 48, 48)
+			const skyMat = new MeshBasicMaterial({ color: new Color(0x000010), side: BackSide, depthWrite: false })
+			const sky = new Mesh(skyGeo, skyMat)
+			scene.add(sky)
 
-      // 3) Subtle cool tint near core (barely visible, avoids flat white)
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = `hsl(${tintH}, 18%, 92%)`;
-      ctx.beginPath(); ctx.arc(cx, cy, rCore * 0.85, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 1;
+			// Star points
+			const starGeometry = new BufferGeometry()
+			const positions = []
+			const colors = []
+			const color = new Color()
 
-      // 4) Tiny diffraction cross (short & faint)
-      ctx.globalAlpha = 0.22;
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 0.6;
-      const len = rCore * 2.2; // short
-      ctx.beginPath();
-      ctx.moveTo(cx - len, cy); ctx.lineTo(cx + len, cy);
-      ctx.moveTo(cx, cy - len); ctx.lineTo(cx, cy + len);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+			// Fetch stars
+			let fetched = []
+			try {
+				// Use /search endpoint with explicit defaults
+				const base = apiUrl.replace(/\/$/, '')
+				const url = `${base}/search?ra=0&dec=0&radius=5`
+				const res = await axios.get(url)
+				const json = res?.data
+				if (Array.isArray(json?.data)) {
+					fetched = json.data
+				} else if (json?.response) {
+					fetched = [json.response]
+				} else if (Array.isArray(json)) {
+					fetched = json
+				}
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.error('Failed to fetch stars', e)
+			}
 
-      return c;
-    }
+			// Fallback to mock if none
+			if (!fetched || fetched.length === 0) {
+				try {
+					const mock = await axios.get('/stars.mock.json')
+					if (Array.isArray(mock?.data?.data)) {
+						fetched = mock.data.data
+					}
+				} catch {}
+			}
 
-    function makeSprites() {
-      // Smaller stars than before; halos are tight
-      sprites.m = makePSFSprite({ rCore: 0.9,  rHalo: 2.4, tintH: 210 }); // medium
-      sprites.l = makePSFSprite({ rCore: 1.2,  rHalo: 3.2, tintH: 205 }); // bright
-    }
+			// Normalize and project to unit sphere using RA/Dec (in degrees)
+			// Prefer 'ra'/'dec' else 'RA_orig'/'Dec_orig'
+			const starData = fetched
+				.map((s) => {
+					const raDeg = (typeof s.ra === 'number' ? s.ra : (typeof s.RA_orig === 'number' ? s.RA_orig * (180 / Math.PI) : null))
+					const decDeg = (typeof s.dec === 'number' ? s.dec : (typeof s.Dec_orig === 'number' ? s.Dec_orig * (180 / Math.PI) : null))
+					return { ...s, raDeg, decDeg }
+				})
+				.filter(s => Number.isFinite(s.raDeg) && Number.isFinite(s.decDeg))
 
-    function makeSmallStars() {
-      const n = Math.max(1, Math.floor(W * H * CFG.densitySmall));
-      smallStars = Array.from({ length: n }, () => {
-        const x = Math.random() * W;
-        const y = CFG.band && Math.random() < 0.5 ? bandY(x) : Math.random() * H;
-        return { x, y, a: rnd(0.35, 0.9) };
-      });
-    }
+			const toCartesian = (raDeg, decDeg, radius = 1) => {
+				// Convert to radians
+				const ra = (raDeg * Math.PI) / 180 // 0..360 -> 0..2π
+				const dec = (decDeg * Math.PI) / 180 // -90..90 -> -π/2..π/2
+				// Astronomical convention: x towards RA=0, z towards RA=90; flip to right-handed Three.js
+				const cosDec = Math.cos(dec)
+				const x = radius * cosDec * Math.cos(ra)
+				const y = radius * Math.sin(dec)
+				const z = radius * cosDec * Math.sin(ra)
+				return [x, y, z]
+			}
 
-    function makeAnimatedStars() {
-      const medN = Math.max(1, Math.floor(W * H * CFG.densityMed));
-      const bigN = Math.max(1, Math.floor(W * H * CFG.densityBig));
-      stars = [];
+			const defaultMag = 12
+			const sizeByMag = (mag = defaultMag) => {
+				// Map magnitude to size; brighter => larger
+				const rel = Math.pow(10, -0.4 * (mag - 10)) // around 1 at mag 10
+				return 0.005 + Math.min(0.02, rel * 0.02)
+			}
+			const starSizes = []
+			starData.forEach((s) => {
+				const [x, y, z] = toCartesian(s.raDeg, s.decDeg, 1)
+				positions.push(x, y, z)
+				// Color by temperature if available (blue-hot, red-cool)
+				const teff = s.Teff ?? s.st_teff
+				if (Number.isFinite(teff)) {
+					// Map 2500K..10000K to 0..1 then to gradient
+					const t = Math.max(0, Math.min(1, (teff - 2500) / (10000 - 2500)))
+					color.setRGB(1 - t * 0.6, 0.8 * (1 - Math.abs(t - 0.5) * 2), 0.9 * t + 0.1)
+				} else {
+					color.setRGB(1, 1, 1)
+				}
+				colors.push(color.r, color.g, color.b)
+				const mag = s.Tmag ?? s.GAIAmag ?? s.Vmag ?? defaultMag
+				starSizes.push(sizeByMag(mag))
+			})
 
-      // Medium
-      for (let i = 0; i < medN; i++) {
-        const x = Math.random() * W;
-        const y = CFG.band && Math.random() < 0.5 ? bandY(x) : Math.random() * H;
-        stars.push({
-          x, y,
-          size: "m",
-          z: rnd(0.7, 1.0),              // minimal parallax weight
-          baseA: rnd(0.45, 0.9),
-          twPhase: Math.random() * Math.PI * 2,
-          appearPhase: Math.random(),
-        });
-      }
-      // Bright (still small, just hotter core)
-      for (let i = 0; i < bigN; i++) {
-        const x = Math.random() * W;
-        const y = CFG.band && Math.random() < 0.5 ? bandY(x) : Math.random() * H;
-        stars.push({
-          x, y,
-          size: "l",
-          z: rnd(0.7, 1.0),
-          baseA: rnd(0.5, 0.95),
-          twPhase: Math.random() * Math.PI * 2,
-          appearPhase: Math.random(),
-        });
-      }
-    }
+			starGeometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+			starGeometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+			// Use per-vertex size approximation via sizeAttenuation and magnitude-influenced base size
+			const avgSize = starSizes.length ? starSizes.reduce((a, b) => a + b, 0) / starSizes.length : 0.01
+			const starMaterial = new PointsMaterial({ size: avgSize, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false })
+			const points = new Points(starGeometry, starMaterial)
+			scene.add(points)
 
-    function drawBackground() {
-      // deep space gradient
-      const g = bgCtx.createRadialGradient(W * 0.7, H * 0.3, 0, W * 0.5, H * 0.5, Math.max(W, H));
-      g.addColorStop(0, "#05070f");
-      g.addColorStop(1, "#000000");
-      bgCtx.fillStyle = g;
-      bgCtx.fillRect(0, 0, W, H);
+			starsRef.current = { points, data: starData }
 
-      // softer "white light" glow from bottom
-      const glow = bgCtx.createRadialGradient(W / 2, H * 1.08, H * 0.05, W / 2, H * 1.08, H * 0.9);
-      glow.addColorStop(0.0, `rgba(255,255,255,${CFG.bottomGlowStrength * 1.6})`);
-      glow.addColorStop(0.35, `rgba(255,255,255,${CFG.bottomGlowStrength * 0.8})`);
-      glow.addColorStop(0.65, `rgba(255,255,255,${CFG.bottomGlowStrength * 0.3})`);
-      glow.addColorStop(1.0, "rgba(255,255,255,0.0)");
-      bgCtx.fillStyle = glow;
-      bgCtx.fillRect(0, 0, W, H);
+			// Background faint star layer for night-sky feel
+			const bgCount = 2000
+			const bgPos = new Float32Array(bgCount * 3)
+			const bgCol = new Float32Array(bgCount * 3)
+			for (let i = 0; i < bgCount; i++) {
+				// jitter on unit sphere slightly beyond main sphere
+				const ra = Math.random() * Math.PI * 2
+				const dec = (Math.random() - 0.5) * Math.PI
+				const r = 1.02
+				const x = r * Math.cos(dec) * Math.cos(ra)
+				const y = r * Math.sin(dec)
+				const z = r * Math.cos(dec) * Math.sin(ra)
+				bgPos[i * 3 + 0] = x
+				bgPos[i * 3 + 1] = y
+				bgPos[i * 3 + 2] = z
+				const c = 0.7 + Math.random() * 0.3
+				bgCol[i * 3 + 0] = c
+				bgCol[i * 3 + 1] = c
+				bgCol[i * 3 + 2] = c
+			}
+			const bgGeom = new BufferGeometry()
+			bgGeom.setAttribute('position', new BufferAttribute(bgPos, 3))
+			bgGeom.setAttribute('color', new BufferAttribute(bgCol, 3))
+			const bgMat = new PointsMaterial({ size: 0.004, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.6, depthWrite: false, depthTest: false })
+			scene.add(new Points(bgGeom, bgMat))
 
-      // tiny static stars
-      bgCtx.fillStyle = "#fff";
-      for (const s of smallStars) {
-        bgCtx.globalAlpha = s.a;
-        bgCtx.fillRect(s.x, s.y, 1, 1);
-      }
-      bgCtx.globalAlpha = 1;
-    }
+			// Picking
+			const raycaster = new Raycaster()
+			raycaster.params.Points = { threshold: 0.02 }
+			const mouse = new Vector2()
+			let downPos = null
+			const onMouseDown = (event) => {
+				downPos = { x: event.clientX, y: event.clientY }
+			}
+			const onClick = (event) => {
+				if (!starsRef.current.points) return
+				// Ignore clicks if user was dragging or moved significantly
+				if (isDragging && downPos) return
+				if (downPos) {
+					const dx = event.clientX - downPos.x
+					const dy = event.clientY - downPos.y
+					if (dx * dx + dy * dy > 9) return
+				}
+				const rect = renderer.domElement.getBoundingClientRect()
+				mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+				mouse.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1)
+				raycaster.setFromCamera(mouse, camera)
+				const intersects = raycaster.intersectObject(starsRef.current.points)
+				if (intersects.length > 0) {
+					const idx = intersects[0].index
+					const star = starsRef.current.data[idx]
+					if (star && typeof onStarSelected === 'function') {
+						onStarSelected(star)
+					}
+				}
+			}
+			renderer.domElement.addEventListener('mousedown', onMouseDown)
+			renderer.domElement.addEventListener('click', onClick)
 
-    function resize() {
-      DPR = clampDPR();
-      W = window.innerWidth;
-      H = window.innerHeight;
+			// Animate
+			let af = 0
+			const animate = () => {
+				controls.update()
+				renderer.render(scene, camera)
+				af = requestAnimationFrame(animate)
+			}
+			animate()
 
-      for (const c of [bg, fx]) {
-        c.width = Math.floor(W * DPR);
-        c.height = Math.floor(H * DPR);
-        c.style.width = W + "px";
-        c.style.height = H + "px";
-        c.getContext("2d").setTransform(DPR, 0, 0, DPR, 0, 0);
-      }
+			// Resize
+			const onResize = () => {
+				const w = container.clientWidth
+				const h = container.clientHeight
+				renderer.setSize(w, h)
+				camera.aspect = w / h
+				camera.updateProjectionMatrix()
+			}
+			window.addEventListener('resize', onResize)
 
-      makeSprites();
-      makeSmallStars();
-      makeAnimatedStars();
-      drawBackground();
-    }
+			// Save refs for cleanup
+			threeRef.current = { renderer, scene, camera, controls, onResize, onClick, onMouseDown, af }
+		}
 
-    // ---------- animation ----------
-    function frame(now) {
-      if (!last) last = now;
-      acc += now - last;
-      last = now;
+		init()
 
-      if (acc >= frameMs) {
-        acc = 0;
-        drawAnimated(now / 1000);
-      }
-      raf = requestAnimationFrame(frame);
-    }
+		return () => {
+			mounted = false
+			const { renderer, scene, controls, onResize, onClick, onMouseDown, af } = threeRef.current
+			if (af) cancelAnimationFrame(af)
+			if (renderer?.domElement) {
+				renderer.domElement.removeEventListener('click', onClick)
+				renderer.domElement.removeEventListener('mousedown', onMouseDown)
+			}
+			if (window && onResize) window.removeEventListener('resize', onResize)
+			if (controls) controls.dispose()
+			if (scene) {
+				scene.traverse((obj) => {
+					if (obj.geometry) obj.geometry.dispose?.()
+					if (obj.material) {
+						if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+						else obj.material.dispose?.()
+					}
+				})
+			}
+			if (renderer) {
+				renderer.dispose()
+				if (renderer.domElement && renderer.domElement.parentNode) {
+					renderer.domElement.parentNode.removeChild(renderer.domElement)
+				}
+			}
+		}
+	}, [apiUrl, onStarSelected])
 
-    function drawAnimated(t) {
-      fxCtx.clearRect(0, 0, W, H);
-
-      // Additive blending makes small stars “pop” without huge blur
-      const prevComp = fxCtx.globalCompositeOperation;
-      fxCtx.globalCompositeOperation = "lighter";
-
-      for (const s of stars) {
-        // barely-there drift
-        const drift = Math.sin(t * 0.15 + s.x * 0.001) * CFG.driftX * s.z;
-        const px = (s.x + drift + W) % W;
-        const py = s.y;
-
-        // brightness twinkle only (no radius pop)
-        const tw = 0.92 + 0.08 * Math.sin(CFG.twinkleSpeed * t + s.twPhase);
-
-        // very gentle fade cycle — never fully disappears
-        const cycle = (s.appearPhase + t * CFG.appearSpeed) % 1;
-        const env = cycle < 0.5
-          ? 0.6 + 0.4 * smoothstep(0.0, 0.5, cycle)     // 0.6 → 1.0
-          : 0.6 + 0.4 * smoothstep(1.0, 0.5, cycle);    // 1.0 → 0.6
-
-        const alpha = Math.min(0.95, s.baseA * tw * env);
-        if (alpha < 0.05) continue;
-
-        fxCtx.globalAlpha = alpha;
-
-        const spr = s.size === "l" ? sprites.l : sprites.m;
-        fxCtx.drawImage(spr, Math.round(px - spr.width / 2), Math.round(py - spr.height / 2));
-      }
-
-      fxCtx.globalAlpha = 1;
-      fxCtx.globalCompositeOperation = prevComp;
-    }
-
-    // init
-    resize();
-    drawBackground();
-    raf = requestAnimationFrame(frame);
-    window.addEventListener("resize", resize);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return (
-    <div className="starfield-wrap">
-      <canvas ref={bgRef} />
-      <canvas ref={fxRef} />
-    </div>
-  );
+	return (
+		<div
+			ref={containerRef}
+			style={{ position: 'fixed', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse at center, #02020a 0%, #000008 70%, #000006 100%)' }}
+		/>
+	)
 }
+
+
