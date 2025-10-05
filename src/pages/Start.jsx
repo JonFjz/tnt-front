@@ -688,7 +688,10 @@ export default function Start() {
             <div className="tab-content">
               {/* Select Telescope */}
               <div className="filter-group">
-                <label className="filter-label">Select telescope:</label>
+                <label className="filter-label">
+                  Select telescope:
+                  <span className="info-icon" data-tooltip="Choose which space telescope data to search. TESS (Transiting Exoplanet Survey Satellite) monitors stars for planetary transits, while K2 is the extended Kepler mission.">ⓘ</span>
+                </label>
                 <select className="filter-dropdown">
                   <option value="">Select telescope</option>
                   <option value="tess">TESS</option>
@@ -698,7 +701,10 @@ export default function Start() {
 
               {/* Select Star by ID */}
               <div className="filter-group">
-                <label className="filter-label">Select star by ID:</label>
+                <label className="filter-label">
+                  Select star by ID:
+                  <span className="info-icon" data-tooltip="Enter a specific star identifier like TIC ID, HD number, or common name to search for that exact star in the telescope database.">ⓘ</span>
+                </label>
                 <input 
                   type="text" 
                   className="filter-input" 
@@ -713,6 +719,7 @@ export default function Start() {
                     <input type="checkbox" className="filter-checkbox" />
                     <span className="checkmark"></span>
                     Enable TOI/KOI lookup
+                    <span className="info-icon" data-tooltip="TOI (TESS Objects of Interest) and KOI (Kepler Objects of Interest) are candidate exoplanets detected by these missions. Enable this to search for stars with confirmed or candidate planets.">ⓘ</span>
                   </label>
                 </div>
               </div>
@@ -786,7 +793,10 @@ export default function Start() {
                 <div className="filter-content">
                     {/* Sky Position */}
                     <div className="filter-group">
-                      <label className="filter-label">Sky position:</label>
+                      <label className="filter-label">
+                        Sky position:
+                        <span className="info-icon" data-tooltip="Search for stars within a specific region of the sky. RA (Right Ascension) is celestial longitude (0-360°), Dec (Declination) is celestial latitude (-90° to +90°), and Radius defines the search area in arcminutes.">ⓘ</span>
+                      </label>
                       <div className="sky-position-inputs">
                         <div className="input-group">
                           <label className="input-label">RA</label>
@@ -809,7 +819,10 @@ export default function Start() {
 
                     {/* Magnitude Range */}
                     <div className="filter-group">
-                      <label className="filter-label">Magnitude range:</label>
+                      <label className="filter-label">
+                        Magnitude range:
+                        <span className="info-icon" data-tooltip="Apparent magnitude measures how bright a star appears from Earth. Lower numbers = brighter stars. The Sun is -26.7, bright stars are 0-2, naked-eye limit is ~6, and faint stars can be 15+.">ⓘ</span>
+                      </label>
                       <div className="range-inputs">
                         <input type="number" className="filter-input range-input" defaultValue="6" min="0" max="20"
                                onChange={(e) => handleRangeInputChange(e, 0, 20, true)} />
@@ -821,7 +834,10 @@ export default function Start() {
 
                     {/* Temperature */}
                     <div className="filter-group">
-                      <label className="filter-label">Temperature (K):</label>
+                      <label className="filter-label">
+                        Temperature (K):
+                        <span className="info-icon" data-tooltip="Stellar effective temperature in Kelvin. Cool red dwarfs are ~2500-4000K, Sun-like stars are ~5000-6000K, and hot blue stars can exceed 20000K. Temperature determines the star's color and spectral type.">ⓘ</span>
+                      </label>
                       <div className="range-inputs">
                         <input type="number" className="filter-input range-input" defaultValue="3000" min="2500" max="40000"
                                onChange={(e) => handleRangeInputChange(e, 2500, 40000, true)} />
@@ -833,7 +849,10 @@ export default function Start() {
 
                     {/* Distance */}
                     <div className="filter-group">
-                      <label className="filter-label">Distance (pc):</label>
+                      <label className="filter-label">
+                        Distance (pc):
+                        <span className="info-icon" data-tooltip="Distance from Earth measured in parsecs (pc). 1 parsec = 3.26 light-years. Nearby stars are within ~10pc, the solar neighborhood extends to ~100pc, and the galaxy disk is ~30,000pc across.">ⓘ</span>
+                      </label>
                       <div className="range-inputs">
                         <input type="number" className="filter-input range-input" defaultValue="10" min="1" max="10000"
                                onChange={(e) => handleRangeInputChange(e, 1, 10000, true)} />
@@ -845,7 +864,10 @@ export default function Start() {
 
                     {/* Observation */}
                     <div className="filter-group">
-                      <label className="filter-label">Observation:</label>
+                      <label className="filter-label">
+                        Observation:
+                        <span className="info-icon" data-tooltip="Select which space telescope's observations to filter by. TESS provides all-sky monitoring for transits, while K2 observed specific fields with high precision photometry.">ⓘ</span>
+                      </label>
                       <select className="filter-dropdown">
                         <option value="">Select satellite</option>
                         <option value="tess">TESS</option>

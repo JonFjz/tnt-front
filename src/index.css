@@ -538,6 +538,8 @@ body{
 
 .filter-group {
   margin-bottom: 16px;
+  overflow: visible;
+  position: relative;
 }
 
 .filter-label {
@@ -810,6 +812,71 @@ body{
   margin: 0;
   font-style: italic;
 }
+
+/* Info Icons */
+.info-icon {
+  display: inline-block;
+  margin-left: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: help;
+  transition: color 0.2s ease;
+  vertical-align: middle;
+}
+
+.info-icon:hover {
+  color: #4a9eff;
+}
+
+/* Tooltip styling */
+.info-icon[data-tooltip] {
+  position: relative;
+  z-index: 1;
+}
+
+
+
+.info-icon[data-tooltip] {
+  position: relative;
+}
+
+.info-icon[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 100%;
+  margin-left: 10px;
+  margin-top: 5px;
+  background-color: rgba(0, 0, 0, 0.95);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  z-index: 999999;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 280px;
+  white-space: normal;
+  word-wrap: break-word;
+  text-align: left;
+  pointer-events: none;
+}
+
+.info-icon[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 100%;
+  margin-left: 4px;
+  margin-top: -1px;
+  border: 6px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.95);
+  z-index: 999999;
+  pointer-events: none;
+}
+
+/* Remove the arrow for fixed tooltips */
 
 /* Fixed Button */
 .start-analyzing-btn {
