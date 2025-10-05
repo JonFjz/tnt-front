@@ -599,30 +599,36 @@ export default function Start() {
                   {isChangeFitsOpen && (
                     <div className="fits-content">
                       <div className="fits-input-group">
+                        <label className="input-label">Prefer:</label>
+                        <select className="filter-dropdown">
+                          <option value="">Select preference</option>
+                          <option value="spoc">SPOC</option>
+                          <option value="qlp">QLP</option>
+                          <option value="any">Any</option>
+                        </select>
+                      </div>
+                      <div className="fits-input-group">
+                        <label className="input-label">TESScut:</label>
+                        <select className="filter-dropdown">
+                          <option value="">Select option</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
+                      <div className="fits-input-group">
                         <label className="input-label">Sector:</label>
                         <input 
                           type="number" 
                           className="filter-input" 
-                          placeholder="0-1000" 
-                          min="0" 
-                          max="1000"
-                          onChange={(e) => handleInputChange(e, 0, 1000)}
+                          placeholder="Enter sector number"
                         />
                       </div>
                       <div className="fits-input-group">
-                        <label className="input-label">Start:</label>
+                        <label className="input-label">Cutout Size:</label>
                         <input 
-                          type="date" 
-                          className="filter-input"
-                          onChange={(e) => handleDateRangeChange(e, true)}
-                        />
-                      </div>
-                      <div className="fits-input-group">
-                        <label className="input-label">End:</label>
-                        <input 
-                          type="date" 
-                          className="filter-input"
-                          onChange={(e) => handleDateRangeChange(e, false)}
+                          type="number" 
+                          className="filter-input" 
+                          placeholder="Enter cutout size"
                         />
                       </div>
                     </div>
