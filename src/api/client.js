@@ -66,8 +66,12 @@ class ApiClient {
       }
     })
 
-    return this.request(endpoint + url.search, {
+    console.log('Making GET request to:', url.toString())
+
+    // Don't send Content-Type header for GET requests to avoid preflight
+    return this.request(url.pathname + url.search, {
       method: 'GET',
+      headers: {}  // Override default headers for GET requests
     })
   }
 
