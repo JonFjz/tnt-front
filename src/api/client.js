@@ -1,149 +1,110 @@
 // Base API client for making HTTP requests
 class ApiClient {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:5000`;
+  }
+
+  // Build full URL with optional query params
+  _buildURL(endpoint, params) {
+    const url = new URL(`${this.baseURL}${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.append(k, v);
+      });
     }
+    return url.toString();
   }
 
   // Base request method
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`
-    
-    const config = {
-      headers: {
-        ...this.defaultHeaders,
-        ...options.headers,
-      },
-      ...options,
+  async request(fullUrl, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isFormData = options.body instanceof FormData;
+
+    // Minimal, smart headers:
+    // - Always allow Accept (simple header, no preflight)
+    // - Only set Content-Type for non-GET and non-FormData
+    const baseHeaders = { Accept: 'application/json' };
+    if (method !== 'GET' && !isFormData && !(options.headers && options.headers['Content-Type'])) {
+      baseHeaders['Content-Type'] = 'application/json';
     }
 
+    const config = {
+      ...options,
+      headers: { ...baseHeaders, ...(options.headers || {}) },
+    };
+
     try {
-      const response = await fetch(url, config)
-      
-      // Handle non-JSON responses (like file uploads)
-      const contentType = response.headers.get('content-type')
-      let data
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json()
-      } else {
-        data = await response.text()
-      }
+      const response = await fetch(fullUrl, config);
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await response.json() : await response.text();
 
       if (!response.ok) {
         throw new ApiError(
-          data.message || `HTTP ${response.status}: ${response.statusText}`,
+          (data && (data.message || data.error)) || `HTTP ${response.status}: ${response.statusText}`,
           response.status,
           data
-        )
+        );
       }
 
-      return data
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error
-      }
-      
-      // Network or other errors
-      throw new ApiError(
-        `Network error: ${error.message}`,
-        0,
-        null
-      )
+      return data;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(`Network error: ${err.message}`, 0, null);
     }
   }
 
-  // GET request
+  // GET request (no Content-Type header)
   async get(endpoint, params = {}) {
-    const url = new URL(`${this.baseURL}${endpoint}`)
-    
-    // Add query parameters
-    Object.keys(params).forEach(key => {
-      if (params[key] !== undefined && params[key] !== null) {
-        url.searchParams.append(key, params[key])
-      }
-    })
-
-    console.log('Making GET request to:', url.toString())
-
-    // Don't send Content-Type header for GET requests to avoid preflight
-    return this.request(url.pathname + url.search, {
-      method: 'GET',
-      headers: {}  // Override default headers for GET requests
-    })
+    const url = this._buildURL(endpoint, params);
+    return this.request(url, { method: 'GET' });
   }
 
-  // POST request
-  async post(endpoint, data = null) {
-    const options = {
-      method: 'POST',
-    }
+  // POST request with optional query params
+  async post(endpoint, data = null, params = null) {
+    const url = this._buildURL(endpoint, params);
+    const options = { method: 'POST' };
 
     if (data instanceof FormData) {
-      // Don't set Content-Type for FormData, let browser set it with boundary
-      options.body = data
-      delete options.headers
+      options.body = data; // don't set Content-Type
     } else if (data) {
-      options.body = JSON.stringify(data)
+      options.body = JSON.stringify(data); // Content-Type will be set automatically
     }
 
-    return this.request(endpoint, options)
+    return this.request(url, options);
   }
 
-  // PUT request
-  async put(endpoint, data = null) {
-    const options = {
-      method: 'PUT',
-    }
-
-    if (data instanceof FormData) {
-      options.body = data
-      delete options.headers
-    } else if (data) {
-      options.body = JSON.stringify(data)
-    }
-
-    return this.request(endpoint, options)
+  async put(endpoint, data = null, params = null) {
+    const url = this._buildURL(endpoint, params);
+    const options = { method: 'PUT' };
+    options.body = data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined);
+    return this.request(url, options);
   }
 
-  // DELETE request
-  async delete(endpoint) {
-    return this.request(endpoint, {
-      method: 'DELETE',
-    })
+  async patch(endpoint, data = null, params = null) {
+    const url = this._buildURL(endpoint, params);
+    const options = { method: 'PATCH' };
+    options.body = data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined);
+    return this.request(url, options);
   }
 
-  // PATCH request
-  async patch(endpoint, data = null) {
-    const options = {
-      method: 'PATCH',
-    }
-
-    if (data instanceof FormData) {
-      options.body = data
-      delete options.headers
-    } else if (data) {
-      options.body = JSON.stringify(data)
-    }
-
-    return this.request(endpoint, options)
+  async delete(endpoint, params = null) {
+    const url = this._buildURL(endpoint, params);
+    return this.request(url, { method: 'DELETE' });
   }
 }
 
 // Custom error class for API errors
 class ApiError extends Error {
   constructor(message, status, data) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.data = data
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
   }
 }
 
 // Create and export a singleton instance
-const apiClient = new ApiClient()
+const apiClient = new ApiClient();
 
-export default apiClient
-export { ApiError }
+export default apiClient;
+export { ApiError };
