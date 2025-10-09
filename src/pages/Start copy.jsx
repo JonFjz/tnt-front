@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Starfield from '../components/Starfield.jsx';
+import Starfield from '../components/StarFieldStart.jsx';
 import StarWarp from '../components/StarWarp.jsx';
 import StarSystem from '../components/StarSystem.jsx';
 
@@ -109,23 +109,12 @@ export default function Start() {
 
   return (
     <main className="page">
-      {/* Always show Starfield as background */}
-      <Starfield 
-        onStarSelected={setSkySelectedStar}
-        selectedStar={skySelectedStar}
-      />
-
-      {/* Show StarSystem as overlay when results are available */}
-      {hasResults && (
-        <StarSystem 
-          data={resultsRaw}
-          onBack={() => setHasResults(false)}
-        />
-      )}
+      <Starfield />
+     
 
       {/* Hyper Params trigger (unchanged) */}
       {!hasResults && (
-        <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)} style={{ zIndex: 1000 }}>
+        <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)}>
           Change Hyper Parameters
           <div className="settings-icon"></div>
         </button>
@@ -133,14 +122,14 @@ export default function Start() {
       {!hasResults && isHyperParamsOpen && <HyperParametersPanel />}
 
       {/* Hamburger */}
-      <div className="hamburger-icon" onClick={() => navigate('/')} style={{ zIndex: 1000 }}>
+      <div className="hamburger-icon" onClick={() => navigate('/')}>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
       </div>
 
       {/* Left panel */}
-      <div className="glass card w-30 h-90" style={{ zIndex: 1000 }}>
+      <div className="glass card w-30 h-90">
         {hasResults ? (
           <ResultsPanel
             resultsData={resultsData}    // stays null for now
