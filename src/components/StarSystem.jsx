@@ -60,16 +60,17 @@ export default function StarSystem({ data, onBack }) {
 
       // Create central star
       const centralStar = await createCentralStar(scene, data)
+      const centralStarData = centralStar?.userData
       
       // Create planets and orbital paths
       if (data && data.transits && data.transits.length > 0) {
         for (let i = 0; i < data.transits.length; i++) {
-          await createPlanet(scene, data.transits[i], i)
-          await createOrbitalPath(scene, i)
+          await createPlanet(scene, data.transits[i], i, centralStarData)
+          await createOrbitalPath(scene, i, centralStarData)
         }
       } else {
         // Create default test planets if no data
-        await createTestPlanets(scene)
+        await createTestPlanets(scene, centralStarData)
       }
 
       // Background star field
@@ -199,31 +200,105 @@ export default function StarSystem({ data, onBack }) {
     }
   }, [data])
 
-  // Helper function to create central star
+  // Helper function to create central star using real data
   const createCentralStar = async (scene, starData) => {
     const { SphereGeometry, MeshBasicMaterial, Mesh } = await import('three')
     
-    const geometry = new SphereGeometry(2, 32, 32)
+    // Get star data from APIreturnReasonable.json
+    let selectedStar = null
+    if (starData && starData.star_id) {
+      // Find the star in our data by ID
+      selectedStar = apiData.data.find(star => 
+        star.ID === starData.star_id || 
+        star.GAIA === starData.star_id ||
+        star.TWOMASS === starData.star_id
+      )
+    }
+    
+    // If no specific star found, use a random one from the data
+    if (!selectedStar && apiData.data.length > 0) {
+      selectedStar = apiData.data[Math.floor(Math.random() * apiData.data.length)]
+    }
+    
+    // Use real star parameters
+    const temperature = selectedStar?.Teff || 5800
+    const mass = selectedStar?.mass || 1.0
+    const radius = selectedStar?.rad || 1.0
+    const luminosity = selectedStar?.lum || 1.0
+    
+    // Scale star size based on real radius (relative to Sun)
+    const starRadius = Math.max(0.5, Math.min(3.0, radius)) * 2
+    
+    const geometry = new SphereGeometry(starRadius, 32, 32)
     const material = new MeshBasicMaterial({ 
-      color: getStarColor(starData?.temperature || 5800),
-      emissive: getStarColor(starData?.temperature || 5800),
-      emissiveIntensity: 0.3
+      color: getStarColor(temperature),
+      emissive: getStarColor(temperature),
+      emissiveIntensity: Math.min(0.8, luminosity * 0.2) // Scale emissive intensity with luminosity
     })
     
     const star = new Mesh(geometry, material)
     star.position.set(0, 0, 0)
-    star.userData = { type: 'centralStar', starData }
+    star.userData = { 
+      type: 'centralStar', 
+      starData: selectedStar,
+      temperature,
+      mass,
+      radius,
+      luminosity
+    }
     scene.add(star)
     
     return star
   }
 
-  // Helper function to create planets
-  const createPlanet = async (scene, planetData, index) => {
+  // Helper function to create planets with realistic parameters
+  const createPlanet = async (scene, planetData, index, centralStarData) => {
     const { SphereGeometry, MeshBasicMaterial, Mesh } = await import('three')
     
-    const orbitalRadius = 8 + (index * 6)
-    const planetRadius = Math.max(0.2, Math.min(1.5, parseFloat(planetData.radius) || 1.0) * 0.3)
+    // Get central star mass for realistic orbital calculations
+    const starMass = centralStarData?.mass || 1.0 // Solar masses
+    const starLuminosity = centralStarData?.luminosity || 1.0
+    
+    // Calculate realistic orbital radius based on star properties
+    // Use simplified version of Kepler's laws and habitable zone calculations
+    const baseOrbitalRadius = 5 + (index * 4) // Base distance
+    const luminosityFactor = Math.sqrt(starLuminosity) // Luminosity affects habitable zone
+    const orbitalRadius = baseOrbitalRadius * luminosityFactor
+    
+    // Calculate realistic planet radius based on type and star properties
+    let planetRadius = 0.3
+    if (planetData.radius) {
+      planetRadius = Math.max(0.1, Math.min(2.0, parseFloat(planetData.radius) * 0.2))
+    } else {
+      // Generate realistic planet size based on type
+      switch (planetData.type) {
+        case 'Terrestrial':
+          planetRadius = 0.3 + Math.random() * 0.2
+          break
+        case 'Super-Earth':
+          planetRadius = 0.5 + Math.random() * 0.3
+          break
+        case 'Mini-Neptune':
+          planetRadius = 0.8 + Math.random() * 0.4
+          break
+        case 'Neptune-like':
+          planetRadius = 1.0 + Math.random() * 0.5
+          break
+        case 'Gas Giant':
+          planetRadius = 1.5 + Math.random() * 1.0
+          break
+        case 'Ice Giant':
+          planetRadius = 1.2 + Math.random() * 0.6
+          break
+        default:
+          planetRadius = 0.4 + Math.random() * 0.4
+      }
+    }
+    
+    // Calculate realistic orbital speed based on Kepler's laws
+    // v = sqrt(GM/r) where G is gravitational constant, M is star mass, r is orbital radius
+    const gravitationalConstant = 1.0 // Simplified units
+    const orbitalSpeed = Math.sqrt(gravitationalConstant * starMass / orbitalRadius) * 0.01
     
     const geometry = new SphereGeometry(planetRadius, 16, 16)
     const material = new MeshBasicMaterial({ 
@@ -235,8 +310,10 @@ export default function StarSystem({ data, onBack }) {
       type: 'planet',
       planetData,
       orbitalRadius,
-      orbitalSpeed: 0.005 + (index * 0.002),
-      angle: Math.random() * Math.PI * 2
+      orbitalSpeed,
+      angle: Math.random() * Math.PI * 2,
+      starMass,
+      starLuminosity
     }
     
     // Position planet in orbit
@@ -250,11 +327,16 @@ export default function StarSystem({ data, onBack }) {
     return planet
   }
 
-  // Helper function to create orbital paths
-  const createOrbitalPath = async (scene, index) => {
+  // Helper function to create orbital paths with realistic radii
+  const createOrbitalPath = async (scene, index, centralStarData) => {
     const { BufferGeometry, BufferAttribute, LineBasicMaterial, Line, Vector3 } = await import('three')
     
-    const orbitalRadius = 8 + (index * 6)
+    // Calculate orbital radius using the same logic as planet creation
+    const starLuminosity = centralStarData?.luminosity || 1.0
+    const baseOrbitalRadius = 5 + (index * 4)
+    const luminosityFactor = Math.sqrt(starLuminosity)
+    const orbitalRadius = baseOrbitalRadius * luminosityFactor
+    
     const points = []
     const segments = 64
     
@@ -282,7 +364,7 @@ export default function StarSystem({ data, onBack }) {
   }
 
   // Helper function to create test planets when no data
-  const createTestPlanets = async (scene) => {
+  const createTestPlanets = async (scene, centralStarData) => {
     const testPlanets = [
       { type: 'Terrestrial', radius: '1.0', period: '88 days' },
       { type: 'Super-Earth', radius: '1.5', period: '225 days' },
@@ -291,8 +373,8 @@ export default function StarSystem({ data, onBack }) {
     ]
     
     for (let i = 0; i < testPlanets.length; i++) {
-      await createPlanet(scene, testPlanets[i], i)
-      await createOrbitalPath(scene, i)
+      await createPlanet(scene, testPlanets[i], i, centralStarData)
+      await createOrbitalPath(scene, i, centralStarData)
     }
   }
 
@@ -334,17 +416,20 @@ export default function StarSystem({ data, onBack }) {
     scene.add(stars)
   }
 
-  // Helper function to get star color based on temperature
+  // Helper function to get star color based on temperature (more accurate stellar classification)
   const getStarColor = (temperature) => {
     if (!temperature) return 0xffaa00
     const temp = parseFloat(temperature)
-    if (temp > 30000) return 0x9bb5ff
-    if (temp > 10000) return 0xffffff
-    if (temp > 7500) return 0xfff4e6
-    if (temp > 6000) return 0xfff4e6
-    if (temp > 5000) return 0xffaa00
-    if (temp > 3500) return 0xff6600
-    return 0xff0000
+    
+    // More accurate stellar color classification
+    if (temp >= 30000) return 0x9bb5ff      // O-type: Blue-white
+    if (temp >= 10000) return 0xaabfff      // B-type: Blue-white
+    if (temp >= 7500) return 0xcad7ff       // A-type: White
+    if (temp >= 6000) return 0xfff4e6       // F-type: Yellow-white
+    if (temp >= 5000) return 0xfff4e6       // G-type: Yellow (like our Sun)
+    if (temp >= 3500) return 0xffaa00       // K-type: Orange
+    if (temp >= 2000) return 0xff6600       // M-type: Red
+    return 0xff0000                         // Very cool stars: Deep red
   }
 
   // Helper function to get planet color based on type
@@ -396,7 +481,7 @@ export default function StarSystem({ data, onBack }) {
           🌟 Solar System View
         </h1>
         <p style={{ margin: '0', opacity: 0.8, fontSize: '0.9rem' }}>
-          Interactive 3D solar system
+          Interactive 3D solar system with real star data
         </p>
       </div>
 
