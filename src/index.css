@@ -15,7 +15,7 @@ body{
   color:var(--fg);
   background: radial-gradient(ellipse at bottom, #0b0d1a 0%, #000 60%);
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  overflow:hidden;
+  
 }
 
 .kepler3d{
