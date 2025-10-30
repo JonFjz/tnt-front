@@ -2,11 +2,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Starfield from '../components/Starfield.jsx';
-import StarWarp from '../components/StarWarp.jsx';
 import StarSystem from '../components/StarSystem.jsx';
-import A from "aladin-lite";
-import SkyAtlas from '../components/SkyAtlas.tsx';
+// Removed Starfield background in favor of Aladin viewer
 
 import TabNav from '../components/Sidebar/TabNav.jsx';
 import BasicStarsList from '../components/Sidebar/BasicStarsList.jsx';
@@ -16,6 +13,7 @@ import StarSearch from '../components/StarSearch/StarSearch.jsx';
 import ResultsPanel from '../components/Results/ResultsPanel.jsx';
 import AIAnalysis from '../components/Results/AIAnalysis.jsx';
 import TransitDetails from '../components/Results/TransitDetails.jsx';
+import AladinViewer from '../components/AladinViewer.jsx';
 
 import {analyzeStar} from '../api/analyze.js';
 
@@ -110,23 +108,22 @@ export default function Start() {
   };
 
   return (
-    <main className="page"  style={{ inset: 0 }}>
-      {/* Always show SkyAtlas as background */}
-       <SkyAtlas
-       className="sky-layer"
-       
-        survey="https://alaskybis.cds.unistra.fr/DSS/DSSColor"
-        target="M31"        // name via Sesame resolver
-        fov={1.5}
-        projection="AIT"
-        cooFrame="equatorial"
-        onReady={(a) => {
-          // example: add a marker and a simple overlay
-          const cat = A.catalog({ name: "Demo", sourceSize: 12 });
-          cat.addSources([A.marker(10.684, 41.269, { name: "M31" })]); // RA, Dec
-          a.addCatalog(cat);
-        }}
-      />
+    <main className="page">
+      {/* Aladin sky viewer as full background */}
+      {!hasResults && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1
+          }}
+        >
+          <AladinViewer selectedStar={selectedStar} />
+        </div>
+      )}
 
       {/* Show StarSystem as overlay when results are available */}
       {hasResults && (
@@ -153,7 +150,7 @@ export default function Start() {
       </div>
 
       {/* Left panel */}
-      <div className="glass card w-30 h-90" style={{marginTop: 24,}}>
+      <div className="glass card w-30 h-90" style={{ zIndex: 1000, position: 'relative' }}>
         {hasResults ? (
           <ResultsPanel
             resultsData={resultsData}    // stays null for now
@@ -239,6 +236,8 @@ export default function Start() {
           {hasResults ? 'Hide Results' : 'Show Results'}
         </button> */}
       </div>
+
+      
 
       {/* Center sections: keep existing components; they’ll remain empty until you wire resultsRaw */}
       {hasResults && resultsData && <AIAnalysis data={resultsData} />}
