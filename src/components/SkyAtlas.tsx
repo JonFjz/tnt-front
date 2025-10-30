@@ -17,6 +17,12 @@ type SkyAtlasProps = {
   showGrid?: boolean;
   /** Optional className for sizing/layout */
   className?: string;
+
+  selectedStar?: {
+    name?: string;
+    ra?: number;      // in degrees
+    dec?: number;     // in degrees
+  };
   /** Called once the viewer is ready */
   onReady?: (aladin: any) => void;
 };
@@ -30,6 +36,7 @@ export default function SkyAtlas({
   showGrid = false,
   className,
   onReady,
+  selectedStar,
 }: SkyAtlasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinRef = useRef<any>(null);
@@ -77,6 +84,15 @@ export default function SkyAtlas({
     // v3: prefer A.HiPS over deprecated imageHiPS
     a.setImageLayer(A.HiPS(survey));
   }, [survey]);
+
+  useEffect(() => {
+		const A = aladinRef.current
+		if (!A || !selectedStar) return
+
+		if (selectedStar.name) {
+			try { A.gotoObject(selectedStar.name) } catch (_) {}
+		}
+	}, [selectedStar])
 
   // Reactive target change
   useEffect(() => {

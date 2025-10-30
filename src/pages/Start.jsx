@@ -14,7 +14,8 @@ import ResultsPanel from '../components/Results/ResultsPanel.jsx';
 import AIAnalysis from '../components/Results/AIAnalysis.jsx';
 import TransitDetails from '../components/Results/TransitDetails.jsx';
 import AladinViewer from '../components/AladinViewer.jsx';
-
+import A from "aladin-lite";
+import SkyAtlas from '../components/SkyAtlas.tsx';
 import {analyzeStar} from '../api/analyze.js';
 
 export default function Start() {
@@ -109,21 +110,25 @@ export default function Start() {
 
   return (
     <main className="page">
-      {/* Aladin sky viewer as full background */}
-      {!hasResults && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1
-          }}
-        >
-          <AladinViewer selectedStar={selectedStar} />
-        </div>
-      )}
+      
+      
+       <SkyAtlas
+       className="sky-layer"
+       
+        survey="https://alaskybis.cds.unistra.fr/DSS/DSSColor"
+        target="M31"        // name via Sesame resolver
+        fov={1.5}
+        projection="AIT"
+        cooFrame="equatorial"
+        selectedStar={selectedStar}
+        onReady={(a) => {
+          // example: add a marker and a simple overlay
+          const cat = A.catalog({ name: "Demo", sourceSize: 12 });
+          cat.addSources([A.marker(10.684, 41.269, { name: "M31" })]); // RA, Dec
+          a.addCatalog(cat);
+        }}
+      />
+       
 
       {/* Show StarSystem as overlay when results are available */}
       {hasResults && (
@@ -150,7 +155,7 @@ export default function Start() {
       </div>
 
       {/* Left panel */}
-      <div className="glass card w-30 h-90" style={{ zIndex: 1000, position: 'relative' }}>
+      <div className="glass card w-30 h-90"  style={{marginTop: 24,}}>
         {hasResults ? (
           <ResultsPanel
             resultsData={resultsData}    // stays null for now
