@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import apiData from '../assets/APIreturnReasonable.json'
+import axios from 'axios'
+// Remove import starDataJson from '../assets/APIreturnLarge.json'
 
 // Three.js is loaded dynamically to avoid SSR issues and keep bundle lean
 export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStarSelected, selectedStar, ra = 266.4170, dec = -29.0078, radius = 30, temp_min = 3000, temp_max = 4500 }) {
@@ -60,26 +61,22 @@ export default function Starfield({ apiUrl = 'https://tnt.thot.info/api', onStar
 			const colors = []
 			const color = new Color()
 
-			// Use local JSON data instead of API
+			// Fetch stars from API with filter params
 			let fetched = []
-			console.log('Using local APIreturnReasonable.json data for Starfield')
-			
-			if (apiData && apiData.data && Array.isArray(apiData.data)) {
-				// Apply temperature filtering to the local data
-				fetched = apiData.data.filter(star => {
-					const teff = star.Teff || star.teff
-					return teff && teff >= temp_min && teff <= temp_max
-				})
-				console.log(`Loaded ${fetched.length} stars from local JSON data (filtered by temperature ${temp_min}-${temp_max}K)`)
-			} else {
-				console.warn('No local data available, using fallback stars')
-				// Fallback stars if local data is not available
-				fetched = [
-					{ ID: 'FALLBACK-1', ra: 0, dec: 0, Tmag: 5.0, Teff: 6000 },
-					{ ID: 'FALLBACK-2', ra: 90, dec: 30, Tmag: 6.0, Teff: 5000 },
-					{ ID: 'FALLBACK-3', ra: 180, dec: -30, Tmag: 7.0, Teff: 4000 },
-					{ ID: 'FALLBACK-4', ra: 270, dec: 60, Tmag: 8.0, Teff: 3000 }
-				]
+			try {
+				const base = apiUrl.replace(/\/$/, '')
+				const url = `${base}/search?ra=${ra}&dec=${dec}&radius=${radius}&temp_min=${temp_min}&temp_max=${temp_max}`
+				const res = await axios.get(url)
+				const json = res?.data
+				if (Array.isArray(json?.data)) {
+					fetched = json.data
+				} else if (json?.response) {
+					fetched = [json.response]
+				} else if (Array.isArray(json)) {
+					fetched = json
+				}
+			} catch (e) {
+				console.error('Failed to fetch stars', e)
 			}
 
 			// Normalize and project to unit sphere using RA/Dec (in degrees)

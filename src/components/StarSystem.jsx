@@ -1,257 +1,513 @@
-import { useMemo, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import apiData from '../assets/APIreturnReasonable.json'
 
 export default function StarSystem({ data, onBack }) {
-	const starData = useMemo(() => {
-		return {
-			id: data?.ID || data?.tid || data?.GAIA || 'Unknown',
-			ra: data?.ra || data?.RA_orig || data?.rastr || '—',
-			dec: data?.dec || data?.Dec_orig || data?.decstr || '—',
-			magnitude: data?.GAIAmag || data?.Tmag || data?.st_tmag || '—',
-			temperature: data?.Teff || data?.st_teff || '—',
-			radius: data?.rad || data?.st_rad || 1,
-			mass: data?.mass || null,
-			distance: data?.d || data?.st_dist || null,
-		}
-	}, [data])
+  const containerRef = useRef(null)
+  const threeRef = useRef({})
+  const planetsRef = useRef({ objects: [], data: [] })
 
-	const planets = useMemo(() => {
-		// If we have transit data
-		if (data?.pl_orbper || data?.response?.pl_orbper) {
-			const planetData = data?.response || data
-			return [{
-				name: planetData.toidisplay || 'Planet 1',
-				periodDays: planetData.pl_orbper,
-				radius: (planetData.pl_rade || 1) * 4, // Scale up for visibility
-				distance: planetData.pl_insol ? Math.sqrt(planetData.pl_insol) * 10 : 30,
-				temperature: planetData.pl_eqt,
-				transitDepth: planetData.pl_trandep,
-				transitDuration: planetData.pl_trandurh
-			}]
-		}
+  useEffect(() => {
+    let mounted = true
 
-		// If we have multiple transits
-		if (Array.isArray(data?.transits) && data.transits.length > 0) {
-			return data.transits.map((t, i) => ({
-				name: `Planet ${i + 1}`,
-				periodDays: t.period,
-				radius: (t.radius || 1) * 4,
-				distance: 22 + i * 14,
-				temperature: t.temperature,
-				transitDepth: t.depth,
-				transitDuration: t.duration
-			}))
-		}
+    async function init() {
+      const [{ 
+        WebGLRenderer, 
+        Scene, 
+        PerspectiveCamera, 
+        SphereGeometry, 
+        MeshBasicMaterial, 
+        Mesh, 
+        BufferGeometry, 
+        BufferAttribute, 
+        LineBasicMaterial, 
+        Line, 
+        Color,
+        Raycaster,
+        Vector2
+      }, { OrbitControls }] = await Promise.all([
+        import('three'),
+        import('three/examples/jsm/controls/OrbitControls.js')
+      ])
 
-		// Default to empty system
-		return []
-	}, [data])
+      if (!mounted || !containerRef.current) return
 
-	const habitableZone = useMemo(() => {
-		// Calculate habitable zone based on star temperature and luminosity
-		// This is a simplified calculation
-		const temp = starData.temperature
-		if (!temp) return { inner: 30, outer: 60 }
-		
-		// Very rough approximation based on star temperature
-		const baseDistance = Math.sqrt(temp / 5778) * 40 // Scale factor relative to Earth-Sun
-		return {
-			inner: baseDistance * 0.75,
-			outer: baseDistance * 1.75
-		}
-	}, [starData.temperature])
+      const container = containerRef.current
+      const width = container.clientWidth
+      const height = container.clientHeight
 
-	const containerRef = useRef(null)
+      const renderer = new WebGLRenderer({ antialias: true, alpha: false })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+      renderer.setSize(width, height)
+      renderer.domElement.style.position = 'absolute'
+      renderer.domElement.style.inset = '0'
+      renderer.setClearColor(0x000000, 1)
+      container.appendChild(renderer.domElement)
 
-	// 3D visualization effect
-	useEffect(() => {
-		let mounted = true
-		let renderer, scene, camera, controls, starMesh, planetMeshes = []
-		async function init() {
-			const [THREE, { OrbitControls }] = await Promise.all([
-				import('three'),
-				import('three/examples/jsm/controls/OrbitControls.js')
-			])
-			if (!mounted || !containerRef.current) return
-			const width = containerRef.current.clientWidth
-			const height = containerRef.current.clientHeight
-			renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-			renderer.setSize(width, height)
-			renderer.domElement.style.position = 'absolute'
-			renderer.domElement.style.inset = '0'
-			containerRef.current.appendChild(renderer.domElement)
+      const scene = new Scene()
+      const camera = new PerspectiveCamera(60, width / height, 0.01, 1000)
+      camera.position.set(0, 30, 80)
 
-			scene = new THREE.Scene()
-			camera = new THREE.PerspectiveCamera(60, width / height, 0.01, 20000)
-			camera.position.set(0, 0, 40)
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.rotateSpeed = -0.3
+      controls.zoomSpeed = 0.6
+      controls.panSpeed = 0.4
+      controls.enablePan = true
+      controls.enableZoom = true
+      controls.minDistance = 5
+      controls.maxDistance = 200
+      controls.target.set(0, 0, 0)
 
-			controls = new OrbitControls(camera, renderer.domElement)
-			controls.enableDamping = true
-			controls.target.set(0, 0, 0)
-			controls.update()
+      // Create central star
+      const centralStar = await createCentralStar(scene, data)
+      const centralStarData = centralStar?.userData
+      
+      // Create planets and orbital paths
+      if (data && data.transits && data.transits.length > 0) {
+        for (let i = 0; i < data.transits.length; i++) {
+          await createPlanet(scene, data.transits[i], i, centralStarData)
+          await createOrbitalPath(scene, i, centralStarData)
+        }
+      } else {
+        // Create default test planets if no data
+        await createTestPlanets(scene, centralStarData)
+      }
 
-			// Background
-			const bgGeo = new THREE.SphereGeometry(1000, 32, 32)
-			const bgMat = new THREE.MeshBasicMaterial({ color: 0x000010, side: THREE.BackSide, depthWrite: false })
-			const bg = new THREE.Mesh(bgGeo, bgMat)
-			scene.add(bg)
+      // Background star field
+      await createStarField(scene)
 
-			// Central star
-			const starRadius = 4
-			const starColor = getStarColor(data?.Teff || data?.st_teff)
-			const starMat = new THREE.MeshBasicMaterial({ color: starColor })
-			starMesh = new THREE.Mesh(new THREE.SphereGeometry(starRadius, 48, 48), starMat)
-			scene.add(starMesh)
+      // Animation
+      let af = 0
+      const animate = () => {
+        controls.update()
+        
+        // Animate planets
+        planetsRef.current.objects.forEach((planet, index) => {
+          if (planet.userData && planet.userData.type === 'planet') {
+            const { orbitalRadius, orbitalSpeed } = planet.userData
+            planet.userData.angle = (planet.userData.angle || 0) + orbitalSpeed
+            
+            planet.position.x = Math.cos(planet.userData.angle) * orbitalRadius
+            planet.position.z = Math.sin(planet.userData.angle) * orbitalRadius
+            
+            // Rotate planet on its axis
+            planet.rotation.y += 0.02
+          }
+        })
 
-			// Planets
-			planetMeshes = []
-			let planets = []
-			if (data?.pl_orbper || data?.response?.pl_orbper) {
-				const planetData = data?.response || data
-				planets = [{
-					name: planetData.toidisplay || 'Planet 1',
-					periodDays: planetData.pl_orbper,
-					radius: (planetData.pl_rade || 1) * 1.2,
-					distance: planetData.pl_insol ? Math.sqrt(planetData.pl_insol) * 10 : 14,
-					color: 0x69f9ff
-				}]
-			} else if (Array.isArray(data?.transits) && data.transits.length > 0) {
-				planets = data.transits.map((t, i) => ({
-					name: `Planet ${i + 1}`,
-					periodDays: t.period,
-					radius: (t.radius || 1) * 1.2,
-					distance: 10 + i * 6,
-					color: 0x69f9ff
-				}))
-			}
-			planets.forEach((p, i) => {
-				const planetMat = new THREE.MeshPhongMaterial({ color: p.color, emissive: 0x222244, shininess: 60 })
-				const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 32, 32), planetMat)
-				const angle = (i / planets.length) * Math.PI * 2
-				planetMesh.position.set(Math.cos(angle) * p.distance, 0, Math.sin(angle) * p.distance)
-				planetMeshes.push(planetMesh)
-				scene.add(planetMesh)
-				// Orbit ring
-				const ringGeo = new THREE.RingGeometry(p.distance - 0.05, p.distance + 0.05, 64)
-				const ringMat = new THREE.MeshBasicMaterial({ color: 0x69f9ff, side: THREE.DoubleSide, transparent: true, opacity: 0.18 })
-				const ring = new THREE.Mesh(ringGeo, ringMat)
-				ring.rotation.x = Math.PI / 2
-				scene.add(ring)
-			})
+        // Rotate central star
+        if (centralStar) {
+          centralStar.rotation.y += 0.01
+        }
 
-			// Lighting
-			const light = new THREE.PointLight(starColor, 1.2, 200)
-			light.position.set(0, 0, 0)
-			scene.add(light)
-			const amb = new THREE.AmbientLight(0xffffff, 0.18)
-			scene.add(amb)
+        renderer.render(scene, camera)
+        af = requestAnimationFrame(animate)
+      }
+      animate()
 
-			// Animate
-			let af = 0
-			const animate = () => {
-				controls.update()
-				// Animate planets
-				planetMeshes.forEach((mesh, i) => {
-					const p = planets[i]
-					if (!p) return
-					const t = Date.now() * 0.00008 * (1 + i * 0.2)
-					const angle = t + (i / planets.length) * Math.PI * 2
-					mesh.position.x = Math.cos(angle) * p.distance
-					mesh.position.z = Math.sin(angle) * p.distance
-				})
-				renderer.render(scene, camera)
-				af = requestAnimationFrame(animate)
-			}
-			animate()
+      // Click handling for planets
+      const raycaster = new Raycaster()
+      const mouse = new Vector2()
+      let isDragging = false
+      let downPos = null
 
-			// Resize
-			const onResize = () => {
-				const w = containerRef.current.clientWidth
-				const h = containerRef.current.clientHeight
-				renderer.setSize(w, h)
-				camera.aspect = w / h
-				camera.updateProjectionMatrix()
-			}
-			window.addEventListener('resize', onResize)
+      const onMouseDown = (event) => {
+        downPos = { x: event.clientX, y: event.clientY }
+        isDragging = false
+      }
 
-			// Cleanup
-			return () => {
-				if (af) cancelAnimationFrame(af)
-				if (renderer?.domElement && renderer.domElement.parentNode) {
-					renderer.domElement.parentNode.removeChild(renderer.domElement)
-				}
-				window.removeEventListener('resize', onResize)
-				if (controls) controls.dispose()
-				if (scene) {
-					scene.traverse((obj) => {
-						if (obj.geometry) obj.geometry.dispose?.()
-						if (obj.material) {
-							if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
-							else obj.material.dispose?.()
-						}
-					})
-				}
-			}
-		}
-		const cleanup = init()
-		return () => { mounted = false; cleanup && cleanup() }
-	}, [data])
+      const onMouseMove = () => {
+        if (downPos) {
+          isDragging = true
+        }
+      }
 
-	return (
-		<div ref={containerRef} style={{ position: 'fixed', inset: 0, zIndex: 0, background: 'radial-gradient(ellipse at center, #02020a 0%, #000008 70%, #000006 100%)' }}>
-			{/* Overlay UI */}
-			<div style={{ position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none' }}>
-				<div style={{ position: 'absolute', left: 24, top: 24, pointerEvents: 'auto' }}>
-					<button className="back-to-search-btn" onClick={onBack}>← Back</button>
-				</div>
-				<div style={{ position: 'absolute', left: 0, right: 0, top: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-					<div style={{ width: 420, maxWidth: '92vw', pointerEvents: 'auto', marginTop: 32 }} className="glass card">
-						<div style={{ padding: 16 }}>
-							<h3>Star System</h3>
-							<div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 12 }}>
-								<div style={{ width: 80, height: 80, borderRadius: 80, background: `radial-gradient(circle at 40% 40%, #fff8, ${getStarColor(starData.temperature)} 60%, ${getDarkerStarColor(starData.temperature)} 100%)`, boxShadow: `0 0 24px ${getStarColor(starData.temperature)}` }} />
-								<div>
-									<div className="info-grid">
-										<div className="info-item"><label className="info-label">Star ID:</label><span className="info-value">{starData.id}</span></div>
-										<div className="info-item"><label className="info-label">RA:</label><span className="info-value">{starData.ra}</span></div>
-										<div className="info-item"><label className="info-label">Dec:</label><span className="info-value">{starData.dec}</span></div>
-										<div className="info-item"><label className="info-label">Mag:</label><span className="info-value">{starData.magnitude}</span></div>
-										<div className="info-item"><label className="info-label">Teff:</label><span className="info-value">{starData.temperature} K</span></div>
-										{starData.mass && <div className="info-item"><label className="info-label">Mass:</label><span className="info-value">{starData.mass} M☉</span></div>}
-										{starData.distance && <div className="info-item"><label className="info-label">Distance:</label><span className="info-value">{starData.distance} pc</span></div>}
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	)
+      const onClick = (event) => {
+        if (isDragging) return
+        
+        const rect = renderer.domElement.getBoundingClientRect()
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1)
+        
+        raycaster.setFromCamera(mouse, camera)
+        const intersects = raycaster.intersectObjects(planetsRef.current.objects)
+        
+        if (intersects.length > 0) {
+          const planet = intersects[0].object
+          if (planet.userData && planet.userData.type === 'planet') {
+            console.log('Planet clicked:', planet.userData.planetData)
+            // You can add planet selection logic here
+          }
+        }
+      }
+
+      renderer.domElement.addEventListener('mousedown', onMouseDown)
+      renderer.domElement.addEventListener('mousemove', onMouseMove)
+      renderer.domElement.addEventListener('click', onClick)
+
+      // Resize handler
+      const onResize = () => {
+        const w = container.clientWidth
+        const h = container.clientHeight
+        renderer.setSize(w, h)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+      }
+      window.addEventListener('resize', onResize)
+
+      // Save refs for cleanup
+      threeRef.current = { 
+        renderer, 
+        scene, 
+        camera, 
+        controls, 
+        onResize, 
+        onClick, 
+        onMouseDown, 
+        onMouseMove, 
+        af 
+      }
+    }
+
+    init()
+
+    return () => {
+      mounted = false
+      const { renderer, scene, controls, onResize, onClick, onMouseDown, onMouseMove, af } = threeRef.current
+      if (af) cancelAnimationFrame(af)
+      if (renderer?.domElement) {
+        renderer.domElement.removeEventListener('click', onClick)
+        renderer.domElement.removeEventListener('mousedown', onMouseDown)
+        renderer.domElement.removeEventListener('mousemove', onMouseMove)
+      }
+      if (window && onResize) window.removeEventListener('resize', onResize)
+      if (controls) controls.dispose()
+      if (scene) {
+        scene.traverse((obj) => {
+          if (obj.geometry) obj.geometry.dispose?.()
+          if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+            else obj.material.dispose?.()
+          }
+        })
+      }
+      if (renderer) {
+        renderer.dispose()
+        if (renderer.domElement && renderer.domElement.parentNode) {
+          renderer.domElement.parentNode.removeChild(renderer.domElement)
+        }
+      }
+    }
+  }, [data])
+
+  // Helper function to create central star using real data
+  const createCentralStar = async (scene, starData) => {
+    const { SphereGeometry, MeshBasicMaterial, Mesh } = await import('three')
+    
+    // Get star data from APIreturnReasonable.json
+    let selectedStar = null
+    if (starData && starData.star_id) {
+      // Find the star in our data by ID
+      selectedStar = apiData.data.find(star => 
+        star.ID === starData.star_id || 
+        star.GAIA === starData.star_id ||
+        star.TWOMASS === starData.star_id
+      )
+    }
+    
+    // If no specific star found, use a random one from the data
+    if (!selectedStar && apiData.data.length > 0) {
+      selectedStar = apiData.data[Math.floor(Math.random() * apiData.data.length)]
+    }
+    
+    // Use real star parameters
+    const temperature = selectedStar?.Teff || 5800
+    const mass = selectedStar?.mass || 1.0
+    const radius = selectedStar?.rad || 1.0
+    const luminosity = selectedStar?.lum || 1.0
+    
+    // Scale star size based on real radius (relative to Sun)
+    const starRadius = Math.max(0.5, Math.min(3.0, radius)) * 2
+    
+    const geometry = new SphereGeometry(starRadius, 32, 32)
+    const material = new MeshBasicMaterial({ 
+      color: getStarColor(temperature),
+      emissive: getStarColor(temperature),
+      emissiveIntensity: Math.min(0.8, luminosity * 0.2) // Scale emissive intensity with luminosity
+    })
+    
+    const star = new Mesh(geometry, material)
+    star.position.set(0, 0, 0)
+    star.userData = { 
+      type: 'centralStar', 
+      starData: selectedStar,
+      temperature,
+      mass,
+      radius,
+      luminosity
+    }
+    scene.add(star)
+    
+    return star
+  }
+
+  // Helper function to create planets with realistic parameters
+  const createPlanet = async (scene, planetData, index, centralStarData) => {
+    const { SphereGeometry, MeshBasicMaterial, Mesh } = await import('three')
+    
+    // Get central star mass for realistic orbital calculations
+    const starMass = centralStarData?.mass || 1.0 // Solar masses
+    const starLuminosity = centralStarData?.luminosity || 1.0
+    
+    // Calculate realistic orbital radius based on star properties
+    // Use simplified version of Kepler's laws and habitable zone calculations
+    const baseOrbitalRadius = 5 + (index * 4) // Base distance
+    const luminosityFactor = Math.sqrt(starLuminosity) // Luminosity affects habitable zone
+    const orbitalRadius = baseOrbitalRadius * luminosityFactor
+    
+    // Calculate realistic planet radius based on type and star properties
+    let planetRadius = 0.3
+    if (planetData.radius) {
+      planetRadius = Math.max(0.1, Math.min(2.0, parseFloat(planetData.radius) * 0.2))
+    } else {
+      // Generate realistic planet size based on type
+      switch (planetData.type) {
+        case 'Terrestrial':
+          planetRadius = 0.3 + Math.random() * 0.2
+          break
+        case 'Super-Earth':
+          planetRadius = 0.5 + Math.random() * 0.3
+          break
+        case 'Mini-Neptune':
+          planetRadius = 0.8 + Math.random() * 0.4
+          break
+        case 'Neptune-like':
+          planetRadius = 1.0 + Math.random() * 0.5
+          break
+        case 'Gas Giant':
+          planetRadius = 1.5 + Math.random() * 1.0
+          break
+        case 'Ice Giant':
+          planetRadius = 1.2 + Math.random() * 0.6
+          break
+        default:
+          planetRadius = 0.4 + Math.random() * 0.4
+      }
+    }
+    
+    // Calculate realistic orbital speed based on Kepler's laws
+    // v = sqrt(GM/r) where G is gravitational constant, M is star mass, r is orbital radius
+    const gravitationalConstant = 1.0 // Simplified units
+    const orbitalSpeed = Math.sqrt(gravitationalConstant * starMass / orbitalRadius) * 0.01
+    
+    const geometry = new SphereGeometry(planetRadius, 16, 16)
+    const material = new MeshBasicMaterial({ 
+      color: getPlanetColor(planetData.type)
+    })
+    
+    const planet = new Mesh(geometry, material)
+    planet.userData = { 
+      type: 'planet',
+      planetData,
+      orbitalRadius,
+      orbitalSpeed,
+      angle: Math.random() * Math.PI * 2,
+      starMass,
+      starLuminosity
+    }
+    
+    // Position planet in orbit
+    planet.position.x = Math.cos(planet.userData.angle) * orbitalRadius
+    planet.position.z = Math.sin(planet.userData.angle) * orbitalRadius
+    
+    scene.add(planet)
+    planetsRef.current.objects.push(planet)
+    planetsRef.current.data.push(planetData)
+    
+    return planet
+  }
+
+  // Helper function to create orbital paths with realistic radii
+  const createOrbitalPath = async (scene, index, centralStarData) => {
+    const { BufferGeometry, BufferAttribute, LineBasicMaterial, Line, Vector3 } = await import('three')
+    
+    // Calculate orbital radius using the same logic as planet creation
+    const starLuminosity = centralStarData?.luminosity || 1.0
+    const baseOrbitalRadius = 5 + (index * 4)
+    const luminosityFactor = Math.sqrt(starLuminosity)
+    const orbitalRadius = baseOrbitalRadius * luminosityFactor
+    
+    const points = []
+    const segments = 64
+    
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2
+      points.push(new Vector3(
+        Math.cos(angle) * orbitalRadius,
+        0,
+        Math.sin(angle) * orbitalRadius
+      ))
+    }
+    
+    const geometry = new BufferGeometry().setFromPoints(points)
+    const material = new LineBasicMaterial({ 
+      color: 0x444444,
+      transparent: true,
+      opacity: 0.5
+    })
+    
+    const orbit = new Line(geometry, material)
+    orbit.userData = { type: 'orbit', index, radius: orbitalRadius }
+    scene.add(orbit)
+    
+    return orbit
+  }
+
+  // Helper function to create test planets when no data
+  const createTestPlanets = async (scene, centralStarData) => {
+    const testPlanets = [
+      { type: 'Terrestrial', radius: '1.0', period: '88 days' },
+      { type: 'Super-Earth', radius: '1.5', period: '225 days' },
+      { type: 'Gas Giant', radius: '4.0', period: '365 days' },
+      { type: 'Ice Giant', radius: '3.5', period: '687 days' }
+    ]
+    
+    for (let i = 0; i < testPlanets.length; i++) {
+      await createPlanet(scene, testPlanets[i], i, centralStarData)
+      await createOrbitalPath(scene, i, centralStarData)
+    }
+  }
+
+  // Helper function to create background star field
+  const createStarField = async (scene) => {
+    const { BufferGeometry, BufferAttribute, PointsMaterial, Points } = await import('three')
+    
+    const starCount = 1000
+    const positions = new Float32Array(starCount * 3)
+    const colors = new Float32Array(starCount * 3)
+    
+    for (let i = 0; i < starCount; i++) {
+      const radius = 500 + Math.random() * 500
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      
+      positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
+      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
+      positions[i * 3 + 2] = radius * Math.cos(phi)
+      
+      const color = 0.5 + Math.random() * 0.5
+      colors[i * 3] = color
+      colors[i * 3 + 1] = color
+      colors[i * 3 + 2] = color
+    }
+    
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new BufferAttribute(colors, 3))
+    
+    const material = new PointsMaterial({
+      size: 0.5,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8
+    })
+    
+    const stars = new Points(geometry, material)
+    scene.add(stars)
+  }
+
+  // Helper function to get star color based on temperature (more accurate stellar classification)
+  const getStarColor = (temperature) => {
+    if (!temperature) return 0xffaa00
+    const temp = parseFloat(temperature)
+    
+    // More accurate stellar color classification
+    if (temp >= 30000) return 0x9bb5ff      // O-type: Blue-white
+    if (temp >= 10000) return 0xaabfff      // B-type: Blue-white
+    if (temp >= 7500) return 0xcad7ff       // A-type: White
+    if (temp >= 6000) return 0xfff4e6       // F-type: Yellow-white
+    if (temp >= 5000) return 0xfff4e6       // G-type: Yellow (like our Sun)
+    if (temp >= 3500) return 0xffaa00       // K-type: Orange
+    if (temp >= 2000) return 0xff6600       // M-type: Red
+    return 0xff0000                         // Very cool stars: Deep red
+  }
+
+  // Helper function to get planet color based on type
+  const getPlanetColor = (type) => {
+    switch (type) {
+      case 'Terrestrial': return 0x8B4513
+      case 'Super-Earth': return 0x228B22
+      case 'Mini-Neptune': return 0x4169E1
+      case 'Neptune-like': return 0x0000CD
+      case 'Gas Giant': return 0xFFD700
+      case 'Ice Giant': return 0x87CEEB
+      default: return 0x808080
+    }
+  }
+
+  return (
+    <div style={{ 
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'radial-gradient(ellipse at center, #02020a 0%, #000008 70%, #000006 100%)',
+      zIndex: 1
+    }}>
+      {/* 3D Scene Container */}
+      <div 
+        ref={containerRef}
+        style={{ 
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0
+        }}
+      />
+
+      {/* UI Overlay - positioned to not interfere with sidebar */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '350px', // Positioned to the right of the sidebar
+        zIndex: 1000,
+        color: 'white'
+      }}>
+        <h1 style={{ 
+          margin: '0 0 10px 0', 
+          fontSize: '1.5rem',
+          color: '#ffaa00'
+        }}>
+          🌟 Solar System View
+        </h1>
+        <p style={{ margin: '0', opacity: 0.8, fontSize: '0.9rem' }}>
+          Interactive 3D solar system with real star data
+        </p>
+      </div>
+
+      {/* Instructions - positioned to not interfere with sidebar */}
+      <div style={{
+        position: 'absolute',
+        bottom: '20px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        padding: '15px',
+        borderRadius: '8px',
+        color: 'white',
+        fontSize: '14px',
+        zIndex: 1000,
+        maxWidth: '250px'
+      }}>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+          🎮 Controls
+        </div>
+        <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
+          <div>• <strong>Mouse:</strong> Rotate view</div>
+          <div>• <strong>Scroll:</strong> Zoom in/out</div>
+          <div>• <strong>Right-click:</strong> Pan view</div>
+          <div>• <strong>Click planets:</strong> Select</div>
+        </div>
+      </div>
+    </div>
+  )
 }
-
-// Helper function to get star color based on temperature
-function getStarColor(temp) {
-	if (!temp) return '#f90'
-	if (temp > 30000) return '#9cf'
-	if (temp > 10000) return '#fff'
-	if (temp > 7500) return '#ffd'
-	if (temp > 6000) return '#ff9'
-	if (temp > 5000) return '#f90'
-	if (temp > 3500) return '#f70'
-	return '#f30'
-}
-
-// Helper function to get darker version of star color
-function getDarkerStarColor(temp) {
-	if (!temp) return '#700'
-	if (temp > 30000) return '#114'
-	if (temp > 10000) return '#447'
-	if (temp > 7500) return '#474'
-	if (temp > 6000) return '#740'
-	if (temp > 5000) return '#720'
-	if (temp > 3500) return '#600'
-	return '#400'
-}
-
-
