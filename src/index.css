@@ -292,7 +292,7 @@ body{
 .hyper-params-btn {
   position: fixed;
   top: 15px;
-  right: 200px; /* Position to the left of hamburger icon */
+  right: 270px; /* Position to the left of hamburger icon */
   width: 320px; /* Match the width of the parameters panel */
   display: flex;
   align-items: center;
@@ -326,7 +326,7 @@ body{
 .hyper-params-panel {
   position: fixed;
   top: 60px;
-  right: 200px; /* Match the button's right position */
+  right: 270px; /* Match the button's right position */
   width: 320px;
   max-height: 80vh;
   background-color: rgba(85, 85, 85, 0.95);

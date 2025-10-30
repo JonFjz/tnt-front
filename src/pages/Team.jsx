@@ -61,7 +61,10 @@ export default function TeamPage() {
 
           <div className="team-grid">
             {/* Member 1 */}
-            <article className="member-card glass-card">
+            <article 
+              className="member-card glass-card clickable-card"
+              onClick={() => window.open('https://www.linkedin.com/in/luri-morina-b49aa2281/', '_blank')}
+            >
               <div className="member-top">
                 <div className="avatar-circle">
                   <img
@@ -81,7 +84,10 @@ export default function TeamPage() {
             </article>
 
             {/* Member 2 */}
-            <article className="member-card glass-card">
+            <article 
+              className="member-card glass-card clickable-card"
+              onClick={() => window.open('https://www.linkedin.com/in/zana-misini-572394332/', '_blank')}
+            >
               <div className="member-top">
                 <div className="avatar-circle">
                   <img
@@ -101,7 +107,10 @@ export default function TeamPage() {
             </article>
 
             {/* Member 3 */}
-            <article className="member-card glass-card">
+            <article 
+              className="member-card glass-card clickable-card"
+              onClick={() => window.open('https://www.linkedin.com/in/drinduka/', '_blank')}
+            >
               <div className="member-top">
                 <div className="avatar-circle">
                   <img
@@ -121,7 +130,10 @@ export default function TeamPage() {
             </article>
 
             {/* Member 4 */}
-            <article className="member-card glass-card">
+            <article 
+              className="member-card glass-card clickable-card"
+              onClick={() => window.open('https://www.linkedin.com/in/jon-fejzullahu-507899177/', '_blank')}
+            >
               <div className="member-top">
                 <div className="avatar-circle">
                   <img
@@ -141,7 +153,10 @@ export default function TeamPage() {
             </article>
 
             {/* Member 5 */}
-            <article className="member-card glass-card">
+            <article 
+              className="member-card glass-card clickable-card"
+              onClick={() => window.open('https://www.linkedin.com/in/olt-imeri/', '_blank')}
+            >
               <div className="member-top">
                 <div className="avatar-circle">
                   <img
@@ -174,7 +189,7 @@ export default function TeamPage() {
             <article className="info-card glass-card">
               <h3 className="info-title">What we're doing</h3>
               <p className="info-body">
-                We’re building a web platform that turns NASA TESS/Kepler light curves into real-time exoplanet candidates. Under the hood, robust preprocessing and ML models flag likely transits; on top, an intuitive UI lets you pick stars, upload data, and even train custom models—no PhD required.
+                We’re building a web platform that turns NASA TESS/Kepler light curves into real-time exoplanet candidates. Under the hood, robust preprocessing and ML models flag likely transits. No PhD is required. Pick the star you are interested in and run the analysis to see if it has a planet.
               </p>
             </article>
 
@@ -411,6 +426,7 @@ export default function TeamPage() {
             </article>
           </div>
         </section>
+
 
         <footer className="footer-note">
           <p>

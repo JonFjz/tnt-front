@@ -55,6 +55,7 @@ export default function SkyAtlas({
         fov,
         projection,
         cooFrame,
+        
         fullScreen: true,
         showFullscreenControl: false, 
         showCooGrid: showGrid,

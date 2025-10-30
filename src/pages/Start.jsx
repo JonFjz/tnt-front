@@ -13,7 +13,7 @@ import StarSearch from '../components/StarSearch/StarSearch.jsx';
 import ResultsPanel from '../components/Results/ResultsPanel.jsx';
 import AIAnalysis from '../components/Results/AIAnalysis.jsx';
 import TransitDetails from '../components/Results/TransitDetails.jsx';
-import AladinViewer from '../components/AladinViewer.jsx';
+
 import A from "aladin-lite";
 import SkyAtlas from '../components/SkyAtlas.tsx';
 import {analyzeStar} from '../api/analyze.js';
