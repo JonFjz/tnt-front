@@ -12,11 +12,16 @@
 html, body, #root { height: 100%; }
 body{
   margin:0;
+  height: 100%;
   color:var(--fg);
   background: radial-gradient(ellipse at bottom, #0b0d1a 0%, #000 60%);
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   
 }
+.aladin-box{
+  z-index: 1000 !important;
+}
+
 
 .kepler3d{
   position: fixed;
@@ -33,7 +38,6 @@ body{
   inset: 0;
   width: 100vw;
   height: 100vh;
-  z-index: var(--z-bg);
   pointer-events: none;   /* never blocks clicks */
   display: block;
 }
@@ -64,6 +68,7 @@ body{
 .buttons{ display:flex; flex-direction:column; gap:16px; }
 
 .glass{
+  z-index: 1 !important;
   background:var(--glass-bg);
   border:1px solid var(--glass-border);
   border-radius:14px;
@@ -260,15 +265,15 @@ body{
 /* Hamburger Icon */
 .hamburger-icon {
   position: fixed;
-  top: 32px;
-  right: 24px;
+  top: 52px;
+  right: 50px;
   width: 32px;
   height: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  z-index: 1000;
+  
 }
 
 .hamburger-line {
@@ -286,8 +291,8 @@ body{
 /* Hyper Parameters Button */
 .hyper-params-btn {
   position: fixed;
-  top: 24px;
-  right: 80px; /* Position to the left of hamburger icon */
+  top: 15px;
+  right: 200px; /* Position to the left of hamburger icon */
   width: 320px; /* Match the width of the parameters panel */
   display: flex;
   align-items: center;
@@ -300,7 +305,6 @@ body{
   border-radius: 10px;
   font-size: 16px;
   cursor: pointer;
-  z-index: 1000;
   transition: all 0.3s ease;
 }
 
@@ -321,15 +325,15 @@ body{
 /* Hyperparameters Panel */
 .hyper-params-panel {
   position: fixed;
-  top: 70px;
-  right: 80px; /* Match the button's right position */
+  top: 60px;
+  right: 200px; /* Match the button's right position */
   width: 320px;
   max-height: 80vh;
   background-color: rgba(85, 85, 85, 0.95);
   border: 1px solid white;
   border-radius: 12px;
   padding: 12px 24px 12px 12px; /* More padding on right for scrollbar */
-  z-index: 1001;
+  z-index: 90;
   overflow-y: auto;
   backdrop-filter: blur(10px);
 }
@@ -869,7 +873,7 @@ body{
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.4;
-  z-index: 999999;
+  z-index: 10;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   width: 280px;
@@ -888,7 +892,7 @@ body{
   margin-top: -1px;
   border: 6px solid transparent;
   border-bottom-color: rgba(0, 0, 0, 0.95);
-  z-index: 999999;
+  z-index: 10;
   pointer-events: none;
 }
 
@@ -1328,7 +1332,7 @@ body{
   width: 600px;
   height: 330px;
   max-width: 90vw;
-  z-index: 800;
+  z-index: 10;
   pointer-events: auto;
   background-color: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
@@ -1348,7 +1352,7 @@ body{
   width: 500px;
   height: 330px;
   max-width: 35vw;
-  z-index: 800;
+  z-index: 10;
   pointer-events: auto;
   background-color: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
@@ -1533,7 +1537,7 @@ body{
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  z-index: 1000;
+  z-index: 10;
   box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
 }
 

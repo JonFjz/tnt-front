@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import Starfield from '../components/Starfield.jsx';
 import StarWarp from '../components/StarWarp.jsx';
 import StarSystem from '../components/StarSystem.jsx';
+import A from "aladin-lite";
+import SkyAtlas from '../components/SkyAtlas.tsx';
 
 import TabNav from '../components/Sidebar/TabNav.jsx';
 import BasicStarsList from '../components/Sidebar/BasicStarsList.jsx';
@@ -108,11 +110,22 @@ export default function Start() {
   };
 
   return (
-    <main className="page">
-      {/* Always show Starfield as background */}
-      <Starfield 
-        onStarSelected={setSkySelectedStar}
-        selectedStar={skySelectedStar}
+    <main className="page"  style={{ inset: 0 }}>
+      {/* Always show SkyAtlas as background */}
+       <SkyAtlas
+       className="sky-layer"
+       
+        survey="https://alaskybis.cds.unistra.fr/DSS/DSSColor"
+        target="M31"        // name via Sesame resolver
+        fov={1.5}
+        projection="AIT"
+        cooFrame="equatorial"
+        onReady={(a) => {
+          // example: add a marker and a simple overlay
+          const cat = A.catalog({ name: "Demo", sourceSize: 12 });
+          cat.addSources([A.marker(10.684, 41.269, { name: "M31" })]); // RA, Dec
+          a.addCatalog(cat);
+        }}
       />
 
       {/* Show StarSystem as overlay when results are available */}
@@ -125,7 +138,7 @@ export default function Start() {
 
       {/* Hyper Params trigger (unchanged) */}
       {!hasResults && (
-        <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)} style={{ zIndex: 1000 }}>
+        <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)} >
           Change Hyper Parameters
           <div className="settings-icon"></div>
         </button>
@@ -133,14 +146,14 @@ export default function Start() {
       {!hasResults && isHyperParamsOpen && <HyperParametersPanel />}
 
       {/* Hamburger */}
-      <div className="hamburger-icon" onClick={() => navigate('/')} style={{ zIndex: 1000 }}>
+      <div className="hamburger-icon" onClick={() => navigate('/')} >
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
       </div>
 
       {/* Left panel */}
-      <div className="glass card w-30 h-90" style={{ zIndex: 1000 }}>
+      <div className="glass card w-30 h-90" style={{marginTop: 24,}}>
         {hasResults ? (
           <ResultsPanel
             resultsData={resultsData}    // stays null for now
