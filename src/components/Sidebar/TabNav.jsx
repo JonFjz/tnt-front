@@ -6,7 +6,7 @@ export default function TabNav({ activeTab, onChange }) {
         className={`tab-button ${activeTab === 'basicStars' ? 'active' : ''}`}
         onClick={() => onChange('basicStars')}
       >
-        Basic Stars
+        Quick Stars
       </button>
       <button
         className={`tab-button ${activeTab === 'starSearch' ? 'active' : ''}`}

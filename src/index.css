@@ -67,6 +67,16 @@ body{
 
 .buttons{ display:flex; flex-direction:column; gap:16px; }
 
+.glassy {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+    rgba(20,24,32,0.55);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+}
+
+
 .glass{
   z-index: 1 !important;
   background:var(--glass-bg);
@@ -106,7 +116,7 @@ body{
 
 .page{ padding:24px 48px; }
 .page-title{ font-family:"Lexend Tera", sans-serif; letter-spacing:.1em; margin-bottom:16px; }
-.card{ padding:24px; border-radius:14px; border:1px solid var(--glass-border); background:rgba(255,255,255,.04); display: flex; flex-direction: column; }
+.card{ padding:24px; border-radius:14px; display: flex; flex-direction: column; }
 
 .w-30 {
   width: 30%;
@@ -291,7 +301,7 @@ body{
 /* Hyper Parameters Button */
 .hyper-params-btn {
   position: fixed;
-  top: 15px;
+  top: 40px;
   right: 270px; /* Position to the left of hamburger icon */
   width: 320px; /* Match the width of the parameters panel */
   display: flex;
@@ -299,7 +309,8 @@ body{
   justify-content: center;
   gap: 12px;
   padding: 12px 20px;
-  background-color: #555;
+  background: rgba(255, 255, 255, .04);
+  backdrop-filter: blur(10px);
   color: white;
   border: 1px solid white;
   border-radius: 10px;

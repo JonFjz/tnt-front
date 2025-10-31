@@ -23,6 +23,7 @@ type SkyAtlasProps = {
     ra?: number;      // in degrees
     dec?: number;     // in degrees
   };
+  starId?: string;
   /** Called once the viewer is ready */
   onReady?: (aladin: any) => void;
 };
@@ -35,8 +36,10 @@ export default function SkyAtlas({
   cooFrame = "equatorial",
   showGrid = false,
   className,
+  
   onReady,
   selectedStar,
+  starId
 }: SkyAtlasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinRef = useRef<any>(null);
@@ -92,8 +95,10 @@ export default function SkyAtlas({
 
 		if (selectedStar.name) {
 			try { A.gotoObject(selectedStar.name) } catch (_) {}
-		}
+		} 
+
 	}, [selectedStar])
+
 
   // Reactive target change
   useEffect(() => {

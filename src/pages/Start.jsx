@@ -1,5 +1,5 @@
 // /src/pages/Start.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import StarSystem from '../components/StarSystem.jsx';
@@ -7,7 +7,8 @@ import StarSystem from '../components/StarSystem.jsx';
 
 import TabNav from '../components/Sidebar/TabNav.jsx';
 import BasicStarsList from '../components/Sidebar/BasicStarsList.jsx';
-import HyperParametersPanel from '../components/HyperParameters/HyperParametersPanel.jsx';
+import HyperParamsGlassy from "../components/HyperParameters/HyperParametersPanel.jsx";
+
 import StarFilters from '../components/StarFilters/StarFilters.jsx';
 import StarSearch from '../components/StarSearch/StarSearch.jsx';
 import ResultsPanel from '../components/Results/ResultsPanel.jsx';
@@ -22,7 +23,8 @@ export default function Start() {
   const navigate = useNavigate();
 
   // Tabs/panels
-  const [isHyperParamsOpen, setIsHyperParamsOpen] = useState(false);
+  const btnRef = useRef(null);
+  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basicStars');
 
   // Selections (existing)
@@ -52,6 +54,8 @@ export default function Start() {
   const handleBasicSelect = (star) => {
     setSelectedStar(star);
     setStarId(star?.id || '');
+    
+    
     // mission is taken from StarSearch dropdown if the user touched it; otherwise keep default 'tess'
   };
 
@@ -121,6 +125,7 @@ export default function Start() {
         projection="AIT"
         cooFrame="equatorial"
         selectedStar={selectedStar}
+        starId={starId}
         onReady={(a) => {
           // example: add a marker and a simple overlay
           const cat = A.catalog({ name: "Demo", sourceSize: 12 });
@@ -139,13 +144,22 @@ export default function Start() {
       )}
 
       {/* Hyper Params trigger (unchanged) */}
-      {!hasResults && (
-        <button className="hyper-params-btn" onClick={() => setIsHyperParamsOpen(!isHyperParamsOpen)} >
+      {!hasResults && (<>
+
+        <button ref={btnRef} className="hyper-params-btn" onClick={() => setOpen(!open)} >
           Change Hyper Parameters
           <div className="settings-icon"></div>
         </button>
-      )}
-      {!hasResults && isHyperParamsOpen && <HyperParametersPanel />}
+      </>)}
+      {!hasResults && open && <HyperParamsGlassy 
+       anchorRef={btnRef}
+        open={open}
+        onClose={() => setOpen(false)}
+        onTrainModel={(cfg) => {
+          // call your backend here
+          console.log("training with:", cfg);
+        }}
+      />}
 
       {/* Hamburger */}
       <div className="hamburger-icon" onClick={() => navigate('/')} >

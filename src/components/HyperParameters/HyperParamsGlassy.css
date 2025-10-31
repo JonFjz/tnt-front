@@ -1,0 +1,123 @@
+/* Fixed popover container (no layout impact) */
+.hp-popover {
+  position: fixed;
+  z-index: 3000;
+  width: 420px;
+  padding: 12px;
+  border-radius: 10px;              /* tighter corners */
+  /* no borders anywhere */
+}
+
+/* Glass look */
+.glassy {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+    rgba(20,24,32,0.55);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+}
+
+
+.glass{
+  z-index: 1 !important;
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:14px;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35), inset 0 0 0 0.5px rgba(255,255,255,0.2);
+}
+
+/* Sectioning */
+.hp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 2px;
+    cursor: pointer;
+}
+.hp-title { color: #e9eefb; font-weight: 600; }
+.hp-icon { background: none; border: none; color: #c9d1e8; cursor: pointer; }
+
+.hp-section { padding: 8px 2px 10px; }
+
+/* Rows */
+.hp-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 10px; margin: 8px 0;
+}
+.hp-label { color: #cfd6e6; font-size: .95rem; }
+.hp-controls { display: flex; align-items: center; gap: 10px; }
+
+/* Sliders + numbers */
+.hp-num { width: 44px; text-align: right; color: #e0e7ff; font-variant-numeric: tabular-nums; }
+input[type="range"] {
+  width: 220px;
+  appearance: none;
+  height: 4px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 4px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #a9c2ff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border: none; border-radius: 50%;
+  background: #a9c2ff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Number input */
+.hp-input {
+  width: 96px;
+  background: rgba(255,255,255,0.08);
+  color: #f2f5ff;
+  border: none;                      /* no borders */
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+/* Segmented control */
+.segmented {
+  display: inline-flex; gap: 6px; padding: 4px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.07);
+}
+.seg {
+  padding: 6px 10px; border: none; border-radius: 6px;
+  color: #cfd6e6; background: transparent; cursor: pointer;
+}
+.seg.active { background: rgba(255,255,255,0.22); color: #111; }
+
+/* Toggle switch */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { display:none; }
+.slider {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: rgba(255,255,255,0.25);
+  transition: .2s;
+}
+.slider:before {
+  content: ""; position: absolute; left: 3px; top: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: .2s;
+}
+.switch input:checked + .slider { background: rgba(150,190,255,0.7); }
+.switch input:checked + .slider:before { transform: translateX(20px); }
+
+/* Solid white train button */
+.hp-train {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;               /* less rounded */
+  background: #ffffff;
+  color: #0f1220;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hp-train:hover { filter: brightness(0.96); }
+
+.hp-hint { margin-top: 6px; color: #aab4d0; font-size: 0.9rem; }
