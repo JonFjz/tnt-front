@@ -3,6 +3,7 @@ export default function BasicStarsList({ selected, onSelect }) {
   const stars = [
     { id: '388857263', name: 'Proxima Centauri', type: 'Red Dwarf', magnitude: '11.13' },
     { id: '261136679', name: 'π Mensae', type: 'G-type', magnitude: '5.65' },
+    { id: '139298196', name: '51 Pegasi', type: 'PM', magnitude: '6.16' },
     { id: '150428135', name: 'TOI-700', type: 'Red Dwarf', magnitude: '13.1' },
     { id: '260128333', name: 'TOI-1338', type: 'SB', magnitude: '12.537' },
     { id: '251848941', name: 'TOI-178', type: 'PM', magnitude: '13.05' },
