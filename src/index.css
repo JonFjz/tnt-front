@@ -1339,8 +1339,8 @@ body{
   position: fixed;
   bottom: 60px;
   left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
+  transform: translateX(-10%);
+  width: 800px;
   height: 330px;
   max-width: 90vw;
   z-index: 10;
@@ -1556,4 +1556,93 @@ body{
   background-color: #357abd;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(74, 158, 255, 0.4);
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;   /* label | value */
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+}
+
+.info-row-label {
+  margin: 0;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.info-row-value {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.95;
+}
+
+/* Last row can subtly stand out if you want; or remove this block */
+.info-row--last {
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+/* Visualizations: simple single-column stack */
+.viz-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.viz-card {
+  margin: 0;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 8px 28px rgba(0,0,0,0.25);
+}
+
+.viz-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 520px;       /* bump if you want taller */
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.viz-caption {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.viz-empty {
+  padding: 18px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,0.2);
+  opacity: 0.9;
+}
+
+/* Nuke legacy nested graph wrappers inside this section */
+.results-section .graph-container,
+.results-section .graph-placeholder,
+.results-section .graph-content,
+.results-section .graph-mock {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }

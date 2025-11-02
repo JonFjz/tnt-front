@@ -1,16 +1,49 @@
 // /src/components/Results/StarInfo.jsx
-export default function StarInfo({ data }) {
+export default function StarInfo({ data = {} }) {
+  const val = (x, suffix = '') =>
+    x === undefined || x === null || x === '—' ? '—' : `${x}${suffix}`;
+
+  const catalogLine = [
+    data.catalogs?.ALLWISE,
+    data.catalogs?.TWOMASS,
+    data.catalogs?.UCAC,
+    data.catalogs?.APASS,
+  ].filter(Boolean).join(' • ') || '—';
+
+  const rows = [
+    ['Source', data.source],
+    ['TIC', data.tic],
+    ['GAIA', data.gaiaId],
+    ['RA', val(data.ra, '°')],
+    ['Dec', val(data.dec, '°')],
+    ['TESS mag (Tmag)', data.tmag],
+    ['V mag', data.vmag],
+    ['Teff', val(data.teff, ' K')],
+    ['Distance', val(data.dist_pc, ' pc')],
+    ['Radius', val(data.radius_sun, ' R☉')],
+    ['Mass', val(data.mass_sun, ' M☉')],
+    ['log g', data.logg],
+    ['Luminosity', val(data.lum_sun, ' L☉')],
+    ['Luminosity Class', data.lumclass],
+    ['Parallax', val(data.parallax_mas, ' mas')],
+    ['pmRA', val(data.pmRA, ' mas/yr')],
+    ['pmDEC', val(data.pmDEC, ' mas/yr')],
+    ['Catalog IDs', catalogLine],
+    // timing goes LAST like you asked
+    ['Timing', val(data.timing_ms, ' ms')],
+  ];
+
   return (
-    <div className="results-section">
+    <section className="results-section">
       <h4 className="section-title">Star Information</h4>
-      <div className="info-grid">
-        <div className="info-item"><label className="info-label">Star ID:</label><span className="info-value">{data.starId || 'TIC 123456789'}</span></div>
-        <div className="info-item"><label className="info-label">RA:</label><span className="info-value">{data.ra || '180.5°'}</span></div>
-        <div className="info-item"><label className="info-label">Dec:</label><span className="info-value">{data.dec || '-45.2°'}</span></div>
-        <div className="info-item"><label className="info-label">Magnitude:</label><span className="info-value">{data.magnitude || '12.4'}</span></div>
-        <div className="info-item"><label className="info-label">Temperature:</label><span className="info-value">{data.temperature || '5800 K'}</span></div>
-        <div className="info-item"><label className="info-label">Distance:</label><span className="info-value">{data.distance || '125.6 pc'}</span></div>
-      </div>
-    </div>
+      <dl className="info-list">
+        {rows.map(([label, value]) => (
+          <div className={`info-row ${label === 'Timing' ? 'info-row--last' : ''}`} key={label}>
+            <dt className="info-row-label">{label}</dt>
+            <dd className="info-row-value">{value ?? '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

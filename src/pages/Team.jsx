@@ -407,7 +407,21 @@ export default function TeamPage() {
               </a>
             </article>
 
-
+            <article className="resource-card glass-card">
+              <h3 className="resource-title">ExoMast</h3>
+              <p className="resource-desc">
+               exo.Mast is a fast, easy way to find exoplanet data from Kepler, K2, Hubble, TESS and JWST.
+              </p>
+              <a
+                className="link-button"
+                href="https://exo.mast.stsci.edu/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Search
+                <span className="arrow">↗</span>
+              </a>
+            </article>
            
             <article className="resource-card glass-card">
               <h3 className="resource-title">Youtube playlist</h3>

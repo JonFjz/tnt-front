@@ -12,7 +12,7 @@ import StarFilters from '../components/StarFilters/StarFilters.jsx';
 import StarSearch from '../components/StarSearch/StarSearch.jsx';
 import ResultsPanel from '../components/Results/ResultsPanel.jsx';
 import AIAnalysis from '../components/Results/AIAnalysis.jsx';
-import TransitDetails from '../components/Results/TransitDetails.jsx';
+import normalizeResults from '../utils/normalizeResults.js';
 
 import A from "aladin-lite";
 import SkyAtlas from '../components/SkyAtlas.tsx';
@@ -99,7 +99,9 @@ export default function Start() {
     }
 
     console.log('[analyze] raw response ->', res.data);
-    setResultsData(res.data);
+    const normalized = normalizeResults(res.data);
+    setResultsData(normalized);
+
     setHasResults(true);
     // Keep resultsData null for now (so you don’t accidentally render legacy shapes)
   };
@@ -244,8 +246,8 @@ export default function Start() {
       
 
       {/* Center sections: keep existing components; they’ll remain empty until you wire resultsRaw */}
-      {hasResults && resultsData && <AIAnalysis data={resultsData} />}
-      {hasResults && resultsData && <TransitDetails data={resultsData} />}
+      {hasResults && resultsData && <AIAnalysis data={resultsData.model} />}
+      
     </main>
   );
 }
