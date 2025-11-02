@@ -32,7 +32,7 @@ export default function StarSearch({ isOpen, onToggleFits, onConfigChange }) {
         <select className="filter-dropdown" value={form.telescope} onChange={(e) => update('telescope', e.target.value)}>
           <option value="">Select telescope</option>
           <option value="tess">TESS</option>
-          <option value="k2">K2</option>
+          <option value="kepler">Kepler</option>
         </select>
       </div>
 

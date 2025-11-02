@@ -2,7 +2,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import StarSystem from '../components/StarSystem.jsx';
 // Removed Starfield background in favor of Aladin viewer
 
 import TabNav from '../components/Sidebar/TabNav.jsx';
@@ -35,12 +34,8 @@ export default function Start() {
 
   // Results & warp (existing)
   const [hasResults, setHasResults] = useState(false);
-  const [resultsData, setResultsData] = useState(null);   // keep for legacy UI
-  const [resultsRaw, setResultsRaw] = useState(null);     // NEW: raw API payload (per spec)
+  const [resultsData, setResultsData] = useState(null);   
  
-  const [warpDone, setWarpDone] = useState(false);
-  const [dataReady, setDataReady] = useState(false);
-  const [showSystem, setShowSystem] = useState(false);
 
   // NEW: analyze parameters + UI states
   const [starId, setStarId] = useState('');                 // required
@@ -86,20 +81,17 @@ export default function Start() {
     }
 
     setIsAnalyzing(true);
-    setHasResults(true);     // keep the user on the current page until success
-    setResultsRaw(null);      // reset
-    // Do NOT touch resultsData here; per spec we are not implementing display yet
-
+    setHasResults(true);
+    setResultsData(null);      // reset
+    
     console.log('[analyze] params ->', { id: idToUse, mission, oi_lookup: oiLookup, optimization_type: optimizationType });
 
-    // Pick the method your backend expects. If it’s GET, change method to 'GET'.
     const res = await analyzeStar(
       { id: idToUse, mission, oi_lookup: oiLookup, optimization_type: optimizationType }
     );
 
     setIsAnalyzing(false);
-     // stop warp immediately (or keep until you flip pages)
-
+    
     if (!res.ok) {
       console.error('[analyze] error ->', res.error);
       setAnalyzeError(res.error || 'Analyze failed.');
@@ -107,8 +99,8 @@ export default function Start() {
     }
 
     console.log('[analyze] raw response ->', res.data);
-    setResultsRaw(res.data);  // per spec: store RAW only; no shaping yet
-    setHasResults(true);      // show the results page sections (existing UI can be wired later)
+    setResultsData(res.data);
+    setHasResults(true);
     // Keep resultsData null for now (so you don’t accidentally render legacy shapes)
   };
 
@@ -135,22 +127,15 @@ export default function Start() {
       />
        
 
-      {/* Show StarSystem as overlay when results are available */}
-      {hasResults && (
-        <StarSystem 
-          data={resultsRaw}
-          onBack={() => setHasResults(false)}
-        />
-      )}
 
       {/* Hyper Params trigger (unchanged) */}
-      {!hasResults && (<>
+      
 
         <button ref={btnRef} className="hyper-params-btn" onClick={() => setOpen(!open)} >
           Change Hyper Parameters
           <div className="settings-icon"></div>
         </button>
-      </>)}
+      
       {!hasResults && open && <HyperParamsGlassy 
        anchorRef={btnRef}
         open={open}
