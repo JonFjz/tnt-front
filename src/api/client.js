@@ -1,7 +1,7 @@
 // Base API client for making HTTP requests
 class ApiClient {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || `https://${window.location.hostname}`;
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || `https://${window.location.hostname}/api`;
   }
 
   // Build full URL with optional query params
