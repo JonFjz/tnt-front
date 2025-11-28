@@ -16,7 +16,7 @@ import normalizeResults from '../utils/normalizeResults.js';
 
 import A from "aladin-lite";
 import SkyAtlas from '../components/SkyAtlas.tsx';
-import {analyzeStar} from '../api/analyze.js';
+import { analyzeStar } from '../api/analyze.js';
 
 export default function Start() {
   const navigate = useNavigate();
@@ -26,6 +26,12 @@ export default function Start() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basicStars');
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(true);
+  const [activeMobilePanel, setActiveMobilePanel] = useState(null); // 'stars' | 'hyper' | null
+
+  const isMobile =
+    typeof window !== 'undefined' && window.innerWidth <= 768;
+
   // Selections (existing)
   const [selectedStar, setSelectedStar] = useState(null);
   const [filteredStars, setFilteredStars] = useState([]);
@@ -34,8 +40,8 @@ export default function Start() {
 
   // Results & warp (existing)
   const [hasResults, setHasResults] = useState(false);
-  const [resultsData, setResultsData] = useState(null);   
- 
+  const [resultsData, setResultsData] = useState(null);
+
 
   // NEW: analyze parameters + UI states
   const [starId, setStarId] = useState('');                 // required
@@ -49,8 +55,8 @@ export default function Start() {
   const handleBasicSelect = (star) => {
     setSelectedStar(star);
     setStarId(star?.id || '');
-    
-    
+
+
     // mission is taken from StarSearch dropdown if the user touched it; otherwise keep default 'tess'
   };
 
@@ -83,7 +89,7 @@ export default function Start() {
     setIsAnalyzing(true);
     setHasResults(true);
     setResultsData(null);      // reset
-    
+
     console.log('[analyze] params ->', { id: idToUse, mission, oi_lookup: oiLookup, optimization_type: optimizationType });
 
     const res = await analyzeStar(
@@ -91,7 +97,7 @@ export default function Start() {
     );
 
     setIsAnalyzing(false);
-    
+
     if (!res.ok) {
       console.error('[analyze] error ->', res.error);
       setAnalyzeError(res.error || 'Analyze failed.');
@@ -108,11 +114,11 @@ export default function Start() {
 
   return (
     <main className="page">
-      
-      
-       <SkyAtlas
-       className="sky-layer"
-       
+
+
+      <SkyAtlas
+        className="sky-layer"
+
         survey="https://alaskybis.cds.unistra.fr/DSS/DSSColor"
         target="M31"        // name via Sesame resolver
         fov={1.5}
@@ -127,127 +133,187 @@ export default function Start() {
           a.addCatalog(cat);
         }}
       />
-       
+
 
 
       {/* Hyper Params trigger (unchanged) */}
-      
 
-        <button ref={btnRef} className="hyper-params-btn" onClick={() => setOpen(!open)} >
-          Change Hyper Parameters
-          <div className="settings-icon"></div>
-        </button>
-      
-      {!hasResults && open && <HyperParamsGlassy 
-       anchorRef={btnRef}
-        open={open}
-        onClose={() => setOpen(false)}
-        onTrainModel={(cfg) => {
-          // call your backend here
-          console.log("training with:", cfg);
+
+      <button
+        ref={btnRef}
+        className="hyper-params-btn"
+        onClick={() => {
+          if (isMobile) {
+            // on phones: this becomes the “open hyper panel” action
+            setActiveMobilePanel(prev => (prev === 'hyper' ? null : 'hyper'));
+          }
+          setOpen(prev => !prev);
         }}
-      />}
+      >
+        Change Hyper Parameters
+        <div className="settings-icon"></div>
+      </button>
+
+      {!hasResults &&
+        open &&
+        (!isMobile || activeMobilePanel === 'hyper') && (
+          <HyperParamsGlassy
+            anchorRef={btnRef}
+            open={open}
+            onClose={() => {
+              setOpen(false);
+              if (isMobile) setActiveMobilePanel(null);
+            }}
+            onTrainModel={(cfg) => {
+              console.log('training with:', cfg);
+            }}
+          />
+        )}
 
       {/* Hamburger */}
-      <div className="hamburger-icon" onClick={() => navigate('/')} >
+      <div
+        className="hamburger-icon"
+        onClick={() => {
+          if (isMobile) {
+            if (activeMobilePanel) {
+              // A panel (stars or hyper) is open -> close it, then show burger menu
+              setActiveMobilePanel(null);
+              setOpen(false);            // make sure hyper panel is closed
+              setMobileMenuOpen(true);   // open dropdown
+            } else {
+              // No panel open -> just toggle dropdown
+              setMobileMenuOpen(prev => !prev);
+            }
+          } else {
+            navigate('/'); // desktop behavior
+          }
+        }}
+      >
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
       </div>
 
+      {/* Mobile dropdown under hamburger */}
+      {isMobile && mobileMenuOpen && (
+        <div className="mobile-panel-menu">
+          <button
+            className="mobile-panel-btn"
+            onClick={() => {
+              setActiveMobilePanel('stars');
+              setMobileMenuOpen(false);
+              setOpen(false); // close hyper on phone
+            }}
+          >
+            Star panel
+          </button>
+          <button
+            className="mobile-panel-btn"
+            onClick={() => {
+              setActiveMobilePanel('hyper');
+              setMobileMenuOpen(false);
+              setOpen(true);
+            }}
+          >
+            Hyper-parameters
+          </button>
+        </div>
+      )}
+
       {/* Left panel */}
-      <div className="glass card w-30 h-90"  style={{marginTop: 24,}}>
-        {hasResults ? (
-          <ResultsPanel
-            resultsData={resultsData}    // stays null for now
-            onBack={() => setHasResults(false)}
-          />
-        ) : (
-          <>
-            <TabNav activeTab={activeTab} onChange={setActiveTab} />
-            <div className="scrollable-content">
-              {activeTab === 'basicStars' && (
-                <BasicStarsList selected={selectedStar} onSelect={handleBasicSelect} />
-              )}
+      {(!isMobile || activeMobilePanel === 'stars') && (
+        <div className="glass card w-30 h-90" style={{ marginTop: 24 }}>
+          {hasResults ? (
+            <ResultsPanel
+              resultsData={resultsData}    // stays null for now
+              onBack={() => setHasResults(false)}
+            />
+          ) : (
+            <>
+              <TabNav activeTab={activeTab} onChange={setActiveTab} />
+              <div className="scrollable-content">
+                {activeTab === 'basicStars' && (
+                  <BasicStarsList selected={selectedStar} onSelect={handleBasicSelect} />
+                )}
 
-              {activeTab === 'starSearch' && (
-                <StarSearch onConfigChange={handleSearchConfig} />
-              )}
+                {activeTab === 'starSearch' && (
+                  <StarSearch onConfigChange={handleSearchConfig} />
+                )}
 
-              {activeTab === 'starFilter' && (
-                <div className="tab-content">
-                  <StarFilters onResults={setFilteredStars} />
-                  <div className="select-star-section">
-                    <h4 className="section-subtitle">Select Star</h4>
-                    <div className="filtered-stars-list">
-                      {filteredStars.length > 0 ? (
-                        filteredStars.map((star) => (
-                          <div
-                            key={star.id}
-                            className={`star-item ${selectedFilteredStar?.id === star.id ? 'selected' : ''}`}
-                            onClick={() => {
-                              setSelectedFilteredStar(star);
-                              setStarId(star.id);             // also initialize analyze params
-                            }}
-                          >
-                            <div className="star-info">
-                              <div className="star-name">{star.name}</div>
-                              <div className="star-id">{star.id}</div>
-                              <div className="star-details">
-                                <span className="star-type">{star.type}</span>
-                                <span className="star-magnitude">Mag: {star.magnitude}</span>
-                                {typeof star.distance === 'number' && (
-                                  <span className="star-distance">Dist: {star.distance.toFixed(1)} pc</span>
-                                )}
+                {activeTab === 'starFilter' && (
+                  <div className="tab-content">
+                    <StarFilters onResults={setFilteredStars} />
+                    <div className="select-star-section">
+                      <h4 className="section-subtitle">Select Star</h4>
+                      <div className="filtered-stars-list">
+                        {filteredStars.length > 0 ? (
+                          filteredStars.map((star) => (
+                            <div
+                              key={star.id}
+                              className={`star-item ${selectedFilteredStar?.id === star.id ? 'selected' : ''}`}
+                              onClick={() => {
+                                setSelectedFilteredStar(star);
+                                setStarId(star.id);             // also initialize analyze params
+                              }}
+                            >
+                              <div className="star-info">
+                                <div className="star-name">{star.name}</div>
+                                <div className="star-id">{star.id}</div>
+                                <div className="star-details">
+                                  <span className="star-type">{star.type}</span>
+                                  <span className="star-magnitude">Mag: {star.magnitude}</span>
+                                  {typeof star.distance === 'number' && (
+                                    <span className="star-distance">Dist: {star.distance.toFixed(1)} pc</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="no-filtered-stars">
+                            <p>No stars found. Apply filters and click "Filter".</p>
                           </div>
-                        ))
-                      ) : (
-                        <div className="no-filtered-stars">
-                          <p>No stars found. Apply filters and click "Filter".</p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Start Analyzing button — now tied to handleAnalyze */}
+          {!hasResults && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                className="start-analyzing-btn"
+                disabled={!canAnalyze || isAnalyzing}
+                onClick={handleAnalyze}
+              >
+                {isAnalyzing
+                  ? 'Analyzing...'
+                  : canAnalyze
+                    ? 'Analyze Selected Star'
+                    : 'Select a star to analyze'}
+              </button>
+
+              {analyzeError && (
+                <div style={{ color: '#ff6b6b', fontSize: 13 }}>{analyzeError}</div>
               )}
             </div>
-          </>
-        )}
+          )}
 
-        {/* Start Analyzing button — now tied to handleAnalyze */}
-        {!hasResults && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button
-              className="start-analyzing-btn"
-              disabled={!canAnalyze || isAnalyzing}
-              onClick={handleAnalyze}
-            >
-              {isAnalyzing
-                ? 'Analyzing...'
-                : canAnalyze
-                  ? 'Analyze Selected Star'
-                  : 'Select a star to analyze'}
-            </button>
-
-            {analyzeError && (
-              <div style={{ color: '#ff6b6b', fontSize: 13 }}>{analyzeError}</div>
-            )}
-          </div>
-        )}
-
-        {/* Test toggle (unchanged)
+          {/* Test toggle (unchanged)
         <button className="test-results-btn" onClick={() => setHasResults(!hasResults)}>
           {hasResults ? 'Hide Results' : 'Show Results'}
         </button> */}
-      </div>
+        </div>)}
 
-      
+
 
       {/* Center sections: keep existing components; they’ll remain empty until you wire resultsRaw */}
       {hasResults && resultsData && <AIAnalysis data={resultsData.model} />}
-      
+
     </main>
   );
 }
