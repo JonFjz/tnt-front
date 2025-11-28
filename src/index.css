@@ -1518,10 +1518,17 @@ body{
   /* Results overlays sized for phone */
   .ai-analysis-container,
   .transit-details-container {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 95vw;
-    max-width: 95vw;
+    position: static;          /* no fixed overlay */
+    bottom: auto;
+    left: auto;
+    transform: none;
+
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+
+    margin: 16px 0 24px;
+    z-index: 1;                /* below hamburger / overlays */
   }
 
   /* Stack info grids into one column */
